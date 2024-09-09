@@ -18,6 +18,9 @@ NAME_FORMAT = "%s_%d_%s.dat"  # atm,charge,basis
 # TODO: change to a json file
 
 from pyscf_util._atmMinCASOrb._maingroup import _CONFIG as _CONFIG
+from pyscf_util._atmMinCASOrb._transitionmetal import _CONFIG as _TM_CONFIG
+
+_CONFIG.update(_TM_CONFIG)
 
 
 class AtmHFOrbLoader:
@@ -132,15 +135,17 @@ class AtmHFOrbLoader:
                     irrep_nelec=_CONFIG[atm][charge]["fake_irrep_nelec"],
                     with_sfx2c=with_sfx2c,
                 )
+                # print(hf_fake.mo_energy)
+                # exit(1)
                 init_guess = copy.deepcopy(hf_fake.mo_coeff)
-                mf = self._rhf(mol, run=False)
+                mf = self._rhf(mol, run=False, with_sfx2c=with_sfx2c)
             else:
-                mf = self._rhf(mol)
+                mf = self._rhf(mol, with_sfx2c=with_sfx2c)
                 init_guess = copy.deepcopy(mf.mo_coeff)
             # perform mcscf #
             mol.symmetry = "D2h"
             mol.build()
-            mf = self._rhf(mol, run=False)
+            mf = self._rhf(mol, run=False, with_sfx2c=with_sfx2c)
             mc = self._mcscf(
                 mol,
                 mf,
@@ -181,31 +186,53 @@ class AtmHFOrbLoader:
             _ici_state=state,
             _mo_init=init_guess,
             _cas_list=cas_list,
+            _mc_max_macro=20,
         )
 
 
 LOADER = AtmHFOrbLoader()
 
 
-def LoadAtmHFOrb(atm, charge, basis):
-    return LOADER.load(atm, charge, basis)
+def LoadAtmHFOrb(atm, charge, basis, rerun=False):
+    if not rerun:
+        return LOADER.load(atm, charge, basis)
+    else:
+        return LOADER.build_info(atm, charge, basis)
 
 
-def LoadAtmHFOrbAllInfo(atm, charge, basis):
-    return LOADER.load_all(atm, charge, basis)
+def LoadAtmHFOrbAllInfo(atm, charge, basis, rerun=False):
+    if not rerun:
+        return LOADER.load_all(atm, charge, basis)
+    else:
+        return LOADER.build_info(atm, charge, basis)
 
 
 if __name__ == "__main__":
-    print(LoadAtmHFOrb("C", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("C", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("N", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("N", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("O", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("O", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("F", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("F", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("Si", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("P", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("S", 0, "cc-pvdz"))
-    print(LoadAtmHFOrb("Cl", 0, "cc-pvdz"))
-    print(LoadAtmHFOrbAllInfo("F", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("C", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("C", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("N", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("N", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("O", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("O", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("F", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("F", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("Si", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("P", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("S", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("Cl", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrbAllInfo("F", 0, "cc-pvdz"))
+    # print(LoadAtmHFOrb("Sc", 0, "cc-pvtz"))
+    # print(LoadAtmHFOrb("Sc", 1, "cc-pvtz"))
+    # print(LoadAtmHFOrb("Sc", 1, "cc-pvtz", rerun=True))
+    # # print(LoadAtmHFOrb("Ti", 0, "cc-pvtz", rerun=True))
+    # print(LoadAtmHFOrb("Ti", 1, "cc-pvtz", rerun=True))
+    # print(LoadAtmHFOrb("V", 1, "cc-pvtz", rerun=True))
+    # print(LoadAtmHFOrb("Co", 0, "cc-pvtz", rerun=True))
+    # print(LoadAtmHFOrb("Co", 1, "cc-pvtz", rerun=True))
+    # print(LoadAtmHFOrb("Ni", 1, "cc-pvdz", rerun=True))
+    # print(LoadAtmHFOrb("Fe", 0, "cc-pvtz", rerun=True))
+    # print(LoadAtmHFOrb("Fe", 1, "cc-pvtz", rerun=True))
+    # print(LoadAtmHFOrb("Co", 0, "cc-pvtz", rerun=True))
+    # print(LoadAtmHFOrb("Co", 1, "cc-pvtz", rerun=True))
+    print(LoadAtmHFOrb("Ni", 0, "cc-pvtz", rerun=True))
+    # print(LoadAtmHFOrb("Ni", 1, "cc-pvtz", rerun=True))
