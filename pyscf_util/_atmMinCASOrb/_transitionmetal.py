@@ -32,8 +32,34 @@ _CONFIG = {
             },
         },
         1: {
-            "mf": "rohf",
-            "spin": 0,
+            "mf": "mcscf",
+            # description of symmetry #
+            "spin": 2,
+            "ici_state": [
+                [2, 0, 2, [1, 1]],
+                [2, 1, 1, [1]],
+                [2, 2, 1, [1]],
+                [2, 3, 1, [1]],
+            ],
+            "minimal_cas": {
+                "norb": 6,
+                "nelec": 2,
+            },
+            "fakescf": True,
+            "fake_charge": 1,
+            "fake_spin": 0,
+            "fake_irrep_nelec": {
+                "s+0": 8,
+                "p+0": 4,
+                "p-1": 4,
+                "p+1": 4,
+            },
+            "cas_symm_d2h": {
+                "ag": 3,
+                "b1g": 1,
+                "b2g": 1,
+                "b3g": 1,
+            },
         },
     },
     "Ti": {
@@ -167,10 +193,12 @@ _CONFIG = {
         0: {
             "mf": "rohf",
             "spin": 6,
+            "ici_state": [[6, 0, 1, [1]]],
         },
         1: {
             "mf": "rohf",
             "spin": 5,
+            "ici_state": [[5, 0, 1, [1]]],
         },
     },
     "Mn": {
@@ -178,10 +206,12 @@ _CONFIG = {
         0: {
             "mf": "rohf",
             "spin": 5,
+            "ici_state": [[5, 0, 1, [1]]],
         },
         1: {
             "mf": "rohf",
             "spin": 6,
+            "ici_state": [[6, 0, 1, [1]]],
         },
     },
     "Fe": {
@@ -408,10 +438,12 @@ _CONFIG = {
         0: {
             "mf": "rohf",
             "spin": 1,
+            "ici_state": [[1, 0, 1, [1]]],
         },
         1: {
             "mf": "rohf",
             "spin": 0,
+            "ici_state": [[0, 0, 1, [1]]],
         },
     },
     "Zn": {
@@ -419,10 +451,12 @@ _CONFIG = {
         0: {
             "mf": "rohf",
             "spin": 0,
+            "ici_state": [[0, 0, 1, [1]]],
         },
         1: {
             "mf": "rohf",
             "spin": 1,
+            "ici_state": [[1, 0, 1, [1]]],
         },
     },
 }

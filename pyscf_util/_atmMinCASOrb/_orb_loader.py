@@ -89,14 +89,20 @@ class AtmHFOrbLoader:
         with open(
             os.path.join(self.current_directory, self.cache_dir_name, filename), "rb"
         ) as f:
-            return pickle.load(f)
+            return pickle.load(file=f)
 
     def _save_to_cache(self, filename, data):
         print(" ---- save to cache to %s ---- " % filename)
+        # print(data)
+        # print(data.__class__)
+        # for key, val in data.items():
+        #     print(key.__class__)
+        #     print(val.__class__)
+        data = copy.deepcopy(data)
         with open(
             os.path.join(self.current_directory, self.cache_dir_name, filename), "wb"
         ) as f:
-            pickle.dump(data, f)
+            pickle.dump(obj=data, file=f)
         return None
 
     def build_info(self, atm, charge, basis, with_sfx2c=None):
@@ -114,7 +120,7 @@ class AtmHFOrbLoader:
             hf = self._rhf(mol, with_sfx2c=with_sfx2c)
             info = {
                 "ovlp": hf.get_ovlp(),
-                "mol": mol,
+                # "mol": mol,
                 "mo_coeff": hf.mo_coeff,
                 "mo_energy": hf.mo_energy,
             }
@@ -157,7 +163,7 @@ class AtmHFOrbLoader:
             )
             info = {
                 "ovlp": mf.get_ovlp(),
-                "mol": mol,
+                # "mol": mol,
                 "mo_coeff": mc.mo_coeff,
                 "mo_energy": mc.mo_energy,
             }
