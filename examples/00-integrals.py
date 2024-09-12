@@ -15,6 +15,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 print("Basis:", args.basis)
+basis = args.basis
 
 # start the calculation #
 

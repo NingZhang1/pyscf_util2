@@ -4,7 +4,7 @@ from copy import deepcopy
 
 _FILE_NOT_REMOVE = {
     "start_with": ["FCIDUMP"],
-    "end_with": [".py", ".out", ".inp"],
+    "end_with": [".py", ".out", ".inp", ".err"],
 }
 
 from contextlib import contextmanager
@@ -101,7 +101,7 @@ class _iCIPT2_Driver:
                     for start in self._file_not_remove["start_with"]
                 ):
                     continue
-                os.remove(file)
+            os.remove(file)
 
 
 def _load_app(env_var):

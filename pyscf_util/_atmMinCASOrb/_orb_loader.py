@@ -117,7 +117,15 @@ class AtmHFOrbLoader:
 
         if _CONFIG[atm][charge]["mf"] == "rohf":
             mol = self._get_mol(atm, charge, _CONFIG[atm][charge]["spin"], basis)
-            hf = self._rhf(mol, with_sfx2c=with_sfx2c)
+            if "irrep_nelec" in _CONFIG[atm][charge].keys():
+                # print("irrep_nelec", _CONFIG[atm][charge]["irrep_nelec"])
+                hf = self._rhf(
+                    mol,
+                    irrep_nelec=_CONFIG[atm][charge]["irrep_nelec"],
+                    with_sfx2c=with_sfx2c,
+                )
+            else:
+                hf = self._rhf(mol, with_sfx2c=with_sfx2c)
             info = {
                 "ovlp": hf.get_ovlp(),
                 # "mol": mol,
@@ -240,5 +248,6 @@ if __name__ == "__main__":
     # print(LoadAtmHFOrb("Fe", 1, "cc-pvtz", rerun=True))
     # print(LoadAtmHFOrb("Co", 0, "cc-pvtz", rerun=True))
     # print(LoadAtmHFOrb("Co", 1, "cc-pvtz", rerun=True))
-    print(LoadAtmHFOrb("Ni", 0, "cc-pvtz", rerun=True))
+    # print(LoadAtmHFOrb("Ni", 0, "cc-pvtz", rerun=True))
     # print(LoadAtmHFOrb("Ni", 1, "cc-pvtz", rerun=True))
+    print(LoadAtmHFOrb("Cr", 1, "cc-pvtz", rerun=True))
