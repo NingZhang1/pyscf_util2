@@ -291,6 +291,7 @@ NORB_ANALYSIS = {
 # Mole Info #
 
 MOLE_ORB_TYPE = {
+    # ---------------------------------------------------------------- #
     "CO": {
         "orb_type": {
             "K_edge_C": [1],
@@ -300,20 +301,25 @@ MOLE_ORB_TYPE = {
         "task_type": {
             "K_edge_C": {
                 "ordering": ["K_edge_O", "K_edge_C", "valence"],
-                "task": {
+                "taskinfo": {
                     "all": {"segment": "0 1 1 4 4 0 %d 0"},
                     "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
+                    "nleft": 10,
+                    "nelec_val": 12,
                 },
             },
             "K_edge_O": {
                 "ordering": ["K_edge_C", "K_edge_O", "valence"],
-                "task": {
+                "taskinfo": {
                     "all": {"segment": "0 1 1 4 4 0 %d 0"},
                     "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
+                    "nleft": 10,
+                    "nelec_val": 12,
                 },
             },
         },
     }
+    # ---------------------------------------------------------------- #
 }
 
 TASK_CASE = ["K_edge", "L_edge", "2s_edge"]

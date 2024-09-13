@@ -26,6 +26,7 @@ iCI_Keywords = [
     "print",
     "doublegroup",
     "prune",
+    "relaxcore"
 ]
 
 
@@ -65,7 +66,45 @@ def _Generate_InputFile_iCI(
         inputfile.write("direct=%d\n" % (direct))
     inputfile.close()
 
-
+def _Generate_InputFile_iCI_CVS(
+    inputfilename,
+    Segment,
+    nelec_val,
+    rotatemo,
+    cmin,
+    perturbation,
+    dumprdm,
+    relative,
+    Task,
+    inputocfg,
+    etol,
+    selection=1,
+    doublegroup=None,
+    direct=None,
+    relaxcore=None,
+):
+    inputfile = open(inputfilename, "w")
+    inputfile.write("nsegment=%s\n" % (Segment))
+    inputfile.write(
+        "nvalelec=%d\nETOL=%e\nCMIN=%s\nROTATEMO=%d\n"
+        % (nelec_val, etol, cmin, rotatemo)
+    )
+    inputfile.write(
+        "perturbation=%d 0\ndumprdm=%d\nrelative=%d\n"
+        % (perturbation, dumprdm, relative)
+    )
+    inputfile.write("task=%s\n" % (Task))
+    inputfile.write("inputcfg=%s\n" % (inputocfg))
+    inputfile.write("print=11\n")
+    inputfile.write("selection=%s\n" % (selection))
+    if doublegroup is not None:
+        inputfile.write("doublegroup=%s\n" % (doublegroup))
+    if direct is not None:
+        inputfile.write("direct=%d\n" % (direct))
+    if relaxcore is not None:
+        inputfile.write("relaxcore=%d\n" % (relaxcore))
+    inputfile.close()
+    
 def _generate_task_spinarray_weight(state):
     res = ""
     spinarray = []
