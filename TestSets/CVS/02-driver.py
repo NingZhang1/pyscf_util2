@@ -53,7 +53,7 @@ with_x2c = args.x2c
 # load HF orb #
 
 CVS_HF_loader = MoleHFOrbLoader(
-    current_directory=os.path.dirname(os.path.realpath(__file__)), _decontract_core=True
+    current_directory=os.path.dirname(os.path.realpath(__file__))
 )
 
 basis_dict = {
@@ -95,6 +95,8 @@ for mol_name in ["CO", "CO2", "CH4", "NH3", "H2O", "HF", "C2H2", "H2CO", "N2", "
     # reorder #
 
     for task in MOLE_ORB_TYPE[mol_name]["task_type"]:
+        if task == "gt":
+            continue
         print("run  task : ", task)
         file_name = FCIDUMP_FORMAT % (mol_name, basis, task)
         if with_x2c:
@@ -106,16 +108,20 @@ for mol_name in ["CO", "CO2", "CH4", "NH3", "H2O", "HF", "C2H2", "H2CO", "N2", "
 
         nleft = MOLE_ORB_TYPE[mol_name]["task_type"][task]["taskinfo"]["nleft"]
         nelec_val = MOLE_ORB_TYPE[mol_name]["task_type"][task]["taskinfo"]["nelec_val"]
+        ici_task = MOLE_ORB_TYPE[mol_name]["task_type"][task]["taskinfo"]["task"]
 
         kernel(
             True,
             task_name="iCIPT2_CVS_%s_%s_%s" % (basis, mol_name, task),
             fcidump=file_name,
-            segment=MOLE_ORB_TYPE[mol_name]["task_type"][task]["taskinfo"]["fzc"]["segment"]
+            segment=MOLE_ORB_TYPE[mol_name]["task_type"][task]["taskinfo"]["all"][
+                "segment"
+            ]
             % (mo_coeff.shape[1] - nleft),
             nelec_val=nelec_val,
-            cmin="1e-3",
-            Task="0 2 1 1",
+            cmin="1e-4",
+            Task=ici_task,
+            perturbation=0
         )
 
         print("iCIPT2 CVS + CoreRelax")
@@ -124,10 +130,13 @@ for mol_name in ["CO", "CO2", "CH4", "NH3", "H2O", "HF", "C2H2", "H2CO", "N2", "
             True,
             task_name="iCIPT2_CVS_Relax_%s_%s_%s" % (basis, mol_name, task),
             fcidump=file_name,
-            segment=MOLE_ORB_TYPE[mol_name]["task_type"][task]["taskinfo"]["fzc"]["segment"]
+            segment=MOLE_ORB_TYPE[mol_name]["task_type"][task]["taskinfo"]["all"][
+                "segment"
+            ]
             % (mo_coeff.shape[1] - nleft),
             nelec_val=nelec_val,
-            cmin="1e-3",
-            Task="0 2 1 1",
+            cmin="1e-4",
+            Task=ici_task,
             relaxcore=True,
+            perturbation=0
         )

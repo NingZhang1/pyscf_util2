@@ -4,13 +4,12 @@ from pyscf_util.misc.hforb_cacher import MoleHFOrbLoader
 import pyscf
 from pyscf import tools
 import numpy as np
+import argparse
 
 mol_involved = list(MOLINFO.keys())
 print("mol rerun for G2 test is ", mol_involved)
 
 # argparse #
-
-import argparse
 
 parser = argparse.ArgumentParser(description="Dump iCIPT2 integrals")
 parser.add_argument(

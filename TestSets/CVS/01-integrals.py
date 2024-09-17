@@ -52,7 +52,7 @@ with_x2c = args.x2c
 # load HF orb #
 
 CVS_HF_loader = MoleHFOrbLoader(
-    current_directory=os.path.dirname(os.path.realpath(__file__)), _decontract_core=True
+    current_directory=os.path.dirname(os.path.realpath(__file__))
 )
 
 basis_dict = {

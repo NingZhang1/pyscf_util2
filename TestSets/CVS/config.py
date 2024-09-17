@@ -303,23 +303,62 @@ MOLE_ORB_TYPE = {
                 "ordering": ["K_edge_O", "K_edge_C", "valence"],
                 "taskinfo": {
                     "all": {"segment": "0 1 1 4 4 0 %d 0"},
-                    "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
+                    # "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
                     "nleft": 10,
                     "nelec_val": 12,
+                    # "task": "0 0 2 1 1 0 2 1 1",
+                    "task": "0 0 1 1 0 2 1 1",
                 },
-            },
+            },  # CALL CVS
             "K_edge_O": {
                 "ordering": ["K_edge_C", "K_edge_O", "valence"],
                 "taskinfo": {
                     "all": {"segment": "0 1 1 4 4 0 %d 0"},
-                    "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
+                    # "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
                     "nleft": 10,
                     "nelec_val": 12,
+                    # "task": "0 0 2 1 1 0 2 1 1",
+                    "task": "0 0 1 1 0 2 1 1",
                 },
-            },
+            },  # CALL CVS
+            "gt": {
+                "ordering": ["K_edge_O", "K_edge_C", "valence"],
+                "taskinfo": {
+                    "all": {"segment": "0 2 4 4 %d 0"},
+                    "nleft": 10,
+                    "nelec_val": 8,
+                    "task": "0 0 1 1",
+                },
+            },  # CALL ICI
         },
-    }
+    },
     # ---------------------------------------------------------------- #
+    # "CO2": {
+    #     "orb_type": {
+    #         "K_edge_C": [2],
+    #         "K_edge_O": [0, 1],
+    #         "valence": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    #     },
+    #     "task_type": {
+    #         "K_edge_C": {
+    #             "ordering": ["K_edge_O", "K_edge_C", "valence"],
+    #             "taskinfo": {
+    #                 "all": {"segment": "0 1 2 6 6 0 %d 0"},
+    #                 # "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
+    #                 "nleft": 15,
+    #                 "nelec_val": 16,
+    #                 "task": "0 5 2 1 1 0 6 2 1 1",
+    #             },
+    #         },  # CALL CVS
+    #         "gt": {
+    #             "ordering": ["K_edge_O", "K_edge_C", "valence"],
+    #             "taskinfo": {
+    #                 "all": {"segment": "0 3 6 6 %d 0"},
+    #                 "nleft": 15,
+    #                 "nelec_val": 16,
+    #                 "task": "0 0 1 1",
+    #             },
+    #         },  # CALL ICI
+    #     },
+    # },
 }
-
-TASK_CASE = ["K_edge", "L_edge", "2s_edge"]

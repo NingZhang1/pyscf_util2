@@ -16,6 +16,7 @@ from pyscf_util.misc import icipt2_inputfile_generator
 # Constant/Configuration
 
 iCI_ProgramName = "ICI_CPP"
+iCI_CVS_ProgramName = "ICI_CSF_CVS_CPP"
 FILE_RDM1_NAME = "rdm1.csv"
 FILE_RDM2_NAME = "rdm2.csv"
 
@@ -105,7 +106,13 @@ def execute_iCI(iciobj):
 
     # execute
 
-    os.system("%s %s > %s" % (iciobj.executable, iciobj.inputfile, iciobj.outputfile))
+    # print("%s %s > %s" % (iciobj.executable, iciobj.inputfile, iciobj.outputfile))
+    if iciobj.CVS:
+        os.system("%s %s FCIDUMP > %s" % (iciobj.executable, iciobj.inputfile, iciobj.outputfile))
+    else:
+        os.system("%s %s > %s" % (iciobj.executable, iciobj.inputfile, iciobj.outputfile))
+
+    # exit(1)
 
     if hasattr(iciobj, "_cached_outputfile"):
         iciobj._cached_outputfile.append(iciobj.outputfile)
@@ -163,6 +170,7 @@ class iCI(lib.StreamObject):  # this is iCI object used in iciscf #
         mol=None,
         state=None,
         taskname=None,
+        CVS=False,
     ):
         self.mol = mol
         if mol is None:
@@ -171,8 +179,13 @@ class iCI(lib.StreamObject):  # this is iCI object used in iciscf #
         else:
             self.stdout = mol.stdout  # useless for iCI
             self.verbose = mol.verbose
-
-        self.executable = os.getenv(iCI_ProgramName)
+        self.CVS = CVS
+        
+        if not self.CVS:
+            self.executable = os.getenv(iCI_ProgramName)
+        else:
+            self.executable = os.getenv(iCI_CVS_ProgramName)
+        print(self.executable)
         self.runtimedir = "."
         self.integralfile = "FCIDUMP"
 
@@ -333,7 +346,7 @@ class iCI(lib.StreamObject):  # this is iCI object used in iciscf #
     ):  # Driver
 
         # judge whether to restart
-        if self.runtime > 0:
+        if self.runtime > 0 and not self.CVS:
             self.restart = True
         # print(self.restart, restart, self.runtime)
         if restart is None:
@@ -407,6 +420,8 @@ class iCI(lib.StreamObject):  # this is iCI object used in iciscf #
             nval_hole = nval // 2
             nval_part = nval - nval_hole
 
+        if self.CVS:
+            assert self.config["segment"] != None
         if self.config["segment"] == None:
             self.config["segment"] = (
                 "0 "
@@ -501,6 +516,8 @@ class iCI(lib.StreamObject):  # this is iCI object used in iciscf #
         nelectron_fzc = self.mol.nelectron - nelectrons
         nfzc = nelectron_fzc // 2
 
+        if self.CVS:
+            assert self.config["segment"] != None
         if self.config["segment"] == None:
             self.config["segment"] = (
                 str(nfzc)
