@@ -303,11 +303,10 @@ MOLE_ORB_TYPE = {
                 "ordering": ["K_edge_O", "K_edge_C", "valence"],
                 "taskinfo": {
                     "all": {"segment": "0 1 1 4 4 0 %d 0"},
-                    # "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
                     "nleft": 10,
                     "nelec_val": 12,
-                    # "task": "0 0 2 1 1 0 2 1 1",
-                    "task": "0 0 1 1 0 2 1 1",
+                    "task": "0 0 2 1 1 0 2 1 1",
+                    # "task": "0 0 1 1 0 2 1 1",
                 },
             },  # CALL CVS
             "K_edge_O": {
@@ -317,8 +316,8 @@ MOLE_ORB_TYPE = {
                     # "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
                     "nleft": 10,
                     "nelec_val": 12,
-                    # "task": "0 0 2 1 1 0 2 1 1",
-                    "task": "0 0 1 1 0 2 1 1",
+                    "task": "0 0 2 1 1 0 2 1 1",
+                    # "task": "0 0 1 1 0 2 1 1",
                 },
             },  # CALL CVS
             "gt": {
@@ -326,6 +325,64 @@ MOLE_ORB_TYPE = {
                 "taskinfo": {
                     "all": {"segment": "0 2 4 4 %d 0"},
                     "nleft": 10,
+                    "nelec_val": 8,
+                    "task": "0 0 1 1",
+                },
+            },  # CALL ICI
+        },
+    },
+    # ---------------------------------------------------------------- #
+    "H2O": {
+        "orb_type": {
+            "K_edge_O": [0],
+            "valence": [1, 2, 3, 4],
+        },
+        "task_type": {
+            "K_edge_O": {
+                "ordering": ["K_edge_O", "valence"],
+                "taskinfo": {
+                    "all": {"segment": "0 0 1 4 4 0 %d 0"},
+                    # "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
+                    "nleft": 9,
+                    "nelec_val": 10,
+                    # "task": "0 0 2 1 1 0 2 1 1",
+                    "task": "0 0 1 1 0 2 1 1",
+                },
+            },  # CALL CVS
+            "gt": {
+                "ordering": ["K_edge_O", "valence"],
+                "taskinfo": {
+                    "all": {"segment": "0 1 4 4 %d 0"},
+                    "nleft": 9,
+                    "nelec_val": 8,
+                    "task": "0 0 1 1",
+                },
+            },  # CALL ICI
+        },
+    },
+    # ---------------------------------------------------------------- #
+    "HF": {
+        "orb_type": {
+            "K_edge_F": [0],
+            "valence": [1, 2, 3, 4],
+        },
+        "task_type": {
+            "K_edge_F": {
+                "ordering": ["K_edge_F", "valence"],
+                "taskinfo": {
+                    "all": {"segment": "0 0 1 4 4 0 %d 0"},
+                    # "fzc": {"segment": "1 0 1 4 4 0 %d 0"},
+                    "nleft": 9,
+                    "nelec_val": 10,
+                    # "task": "0 0 2 1 1 0 2 1 1",
+                    "task": "0 0 1 1 0 2 1 1",
+                },
+            },  # CALL CVS
+            "gt": {
+                "ordering": ["K_edge_F", "valence"],
+                "taskinfo": {
+                    "all": {"segment": "0 1 4 4 %d 0"},
+                    "nleft": 9,
                     "nelec_val": 8,
                     "task": "0 0 1 1",
                 },

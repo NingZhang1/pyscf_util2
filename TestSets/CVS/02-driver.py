@@ -121,22 +121,22 @@ for mol_name in ["CO", "CO2", "CH4", "NH3", "H2O", "HF", "C2H2", "H2CO", "N2", "
             nelec_val=nelec_val,
             cmin="1e-4",
             Task=ici_task,
-            perturbation=0
+            perturbation=0,
         )
 
-        print("iCIPT2 CVS + CoreRelax")
+        # print("iCIPT2 CVS + CoreRelax")
 
-        kernel(
-            True,
-            task_name="iCIPT2_CVS_Relax_%s_%s_%s" % (basis, mol_name, task),
-            fcidump=file_name,
-            segment=MOLE_ORB_TYPE[mol_name]["task_type"][task]["taskinfo"]["all"][
-                "segment"
-            ]
-            % (mo_coeff.shape[1] - nleft),
-            nelec_val=nelec_val,
-            cmin="1e-4",
-            Task=ici_task,
-            relaxcore=True,
-            perturbation=0
-        )
+        # kernel(
+        #     True,
+        #     task_name="iCIPT2_CVS_Relax_%s_%s_%s" % (basis, mol_name, task),
+        #     fcidump=file_name,
+        #     segment=MOLE_ORB_TYPE[mol_name]["task_type"][task]["taskinfo"]["all"][
+        #         "segment"
+        #     ]
+        #     % (mo_coeff.shape[1] - nleft),
+        #     nelec_val=nelec_val,
+        #     cmin="1e-4",
+        #     Task=ici_task,
+        #     relaxcore=True,
+        #     perturbation=0,
+        # )
