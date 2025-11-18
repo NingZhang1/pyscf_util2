@@ -146,7 +146,7 @@ def extract_icipt2_data_from_file2(file_path: str):
 from scipy.optimize import curve_fit
 
 
-def weighted_linear_fit_estimate_error(x, y, print_verbose=False):
+def weighted_linear_fit_estimate_error(x, y, print_verbose=False, get_curve=False):
 
     def func(x, a, b):
         return a * x + b
@@ -165,7 +165,10 @@ def weighted_linear_fit_estimate_error(x, y, print_verbose=False):
         print("Intercept         : %16.8e\n" % popt[1])
         print("b_error           : %16.8e\n" % b_error)
 
-    return b, b_error
+    if get_curve:
+        return b, b_error, popt[0], popt[1]
+    else:
+        return b, b_error
 
 
 def quadratic_fit_estimate_error(x, y, print_verbose=False):
