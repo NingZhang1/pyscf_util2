@@ -6,7 +6,7 @@ from pyscf_util.MeanField.iciscf import iCI
 from pyscf_util.Integrals.integral_Coov import FCIDUMP_Coov
 from pyscf_util.iCIPT2.iCIPT2_CVS_highsym import kernel_coov
 
-BASIS = "ccpvtz"
+BASIS = "ccpvdz"
 
 cas_space_symmetry = {
     "A1": 5,  # 5

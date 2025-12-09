@@ -126,7 +126,7 @@ def extract_icipt2_data_from_file(file_path: str):
         if header_index is None:
             continue
 
-        data_lines = block[header_index + 1:]
+        data_lines = block[header_index + 1 :]
 
         state_index = 0
         spintwo_last = None
@@ -166,11 +166,7 @@ def extract_icipt2_data_from_file(file_path: str):
 
             results[key].append(
                 iCIPT2_Data(
-                    ncfg=int(ncfg),
-                    ncsf=int(ncsf),
-                    evar=evar,
-                    ept=ept,
-                    etot=etot
+                    ncfg=int(ncfg), ncsf=int(ncsf), evar=evar, ept=ept, etot=etot
                 )
             )
 
@@ -432,4 +428,3 @@ if __name__ == "__main__":
         data.sort()
         res = extra_icipt2_data(data)
         print_icipt2_extra(res)
-

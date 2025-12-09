@@ -154,7 +154,11 @@ def weighted_linear_fit_estimate_error(x, y, print_verbose=False, get_curve=Fals
     x = np.asarray(x)
     y = np.asarray(y)
 
-    popt, pcov = curve_fit(func, x, y, sigma=1 / abs(x))
+    # popt, pcov = curve_fit(func, x, y, sigma=1 / abs(x), absolute_sigma=True)
+    # popt, pcov = curve_fit(func, x, y, sigma=abs(x), absolute_sigma=True)
+    popt, pcov = curve_fit(
+        func, x, y, sigma=abs(x), p0=[(y[-1] - y[-2]) / (x[-1] - x[-2]), y[-1]]
+    )
 
     b = popt[1]
     b_error = np.sqrt(pcov[1][1])
@@ -208,7 +212,12 @@ def weighted_quadratic_fit_estimate_error(x, y, print_verbose=False):
     y = np.asarray(y)
 
     # Use curve_fit to fit the function to our data. popt will contain the fitted parameters
-    popt, pcov = curve_fit(func, x, y, sigma=1 / abs(x))
+    # popt, pcov = curve_fit(func, x, y, sigma=1 / abs(x), absolute_sigma=True)
+    # popt, pcov = curve_fit(func, x, y, sigma=abs(x), absolute_sigma=True)
+    # popt, pcov = curve_fit(func, x, y, sigma=abs(x))
+    popt, pcov = curve_fit(
+        func, x, y, sigma=abs(x), p0=[(y[-1] - y[-2]) / (x[-1] - x[-2]), y[-1]]
+    )
 
     # Generate predicted y values from our fitted function
     y_pred = func(x, *popt)

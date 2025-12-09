@@ -7,7 +7,7 @@ from pyscf_util.Relativisitc.integral_4C import (
 
 mol = gto.M(
     atom="F 0 0 0",
-    basis="unc-cc-pvdz-dk",
+    basis="cc-pvdz-dk",
     verbose=5,
     charge=-1,
     spin=0,
@@ -35,3 +35,22 @@ FCIDUMP_Rela4C(mol, mf, True, filename=FCIDUMP_NAME, mode="outcore")
 #     Task="1 1 3 1 1 1",
 #     end_with=".PrimeSpace",
 # )
+
+mol = gto.M(
+    atom="O 0 0 0",
+    basis="cc-pvdz-dk",
+    verbose=5,
+    charge=-2,
+    spin=0,
+    symmetry="d2h",
+)
+mol.build()
+mf = scf.dhf.RDHF(mol)
+mf.conv_tol = 1e-12
+mf.kernel()
+mf.with_breit = True
+mf.kernel()
+
+FCIDUMP_NAME = "FCIDUMP_O"
+
+FCIDUMP_Rela4C(mol, mf, True, filename=FCIDUMP_NAME, mode="outcore")
