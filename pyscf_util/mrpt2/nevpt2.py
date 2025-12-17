@@ -233,15 +233,16 @@ import numpy as np
 #     eigvals, eigvecs = scipy.linalg.eigh(k27, dm1)
 #     return eigvals, eigvecs
 
+
 def _diag_K_R_rsi(h1e, h2e, dm1, dm2):
     """
     求解广义特征值问题 K * c = e * dm1 * c
-    
+
     参数:
         h1e, h2e: 哈密顿量矩阵元
         dm1, dm2: 密度矩阵
         tol: 奇异值容忍度
-    
+
     返回:
         eigvals: 特征值
         eigvecs: 特征向量
@@ -258,6 +259,7 @@ def _diag_K_R_rsi(h1e, h2e, dm1, dm2):
         dm1_regularized = dm1 + 1e-10 * np.eye(n)
         eigvals, eigvecs = scipy.linalg.eigh(k27, dm1_regularized)
         return eigvals, eigvecs
+
 
 def Srsi_PC(mc, dms, eris, verbose=None):
     # Subspace S_ijr^{(1)}
