@@ -96,6 +96,8 @@ for i in range(mol.nao):
 for i in range(mol.nao):
     print("Orbital energy:", i, orb_ene[i])
 
+file_cmoao.Dump_Cmoao("C2_gfock", new_fock)
+
 ### dump fcidump ###
 
 dump_heff_casci(
