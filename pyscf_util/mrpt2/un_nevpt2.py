@@ -13,13 +13,23 @@ from functools import reduce
 
 
 def fcidump_Dyall(
-    Mol, my_mcscf, mo_coeff, orb_ene, ncore, nact, nvirt, _filename="FCIDUMP_Dyall"
+    Mol,
+    my_mcscf,
+    mo_coeff,
+    orb_ene,
+    ncore,
+    nact,
+    nvirt,
+    nfzc=0,
+    _filename="FCIDUMP_Dyall",
 ):
 
     norb = ncore + nact + nvirt
 
     int2e_full = pyscf.ao2mo.full(
-        eri_or_mol=Mol, mo_coeff=mo_coeff[:, ncore : ncore + nact], compact=True
+        eri_or_mol=Mol,
+        mo_coeff=mo_coeff[:, nfzc + ncore : nfzc + ncore + nact],
+        compact=True,
     )  # incore anyway since the size of active space cannot be too large!
     int2e_full = pyscf.ao2mo.restore(1, int2e_full.copy(), nact)
 
@@ -40,24 +50,33 @@ def fcidump_Dyall(
     OrbSymID = [pyscf.symm.irrep_name2id(Mol.groupname, x) for x in OrbSym]
 
     int1e_res, energy_core = pyscf.mcscf.casci.h1e_for_cas(
-        my_mcscf, mo_coeff=mo_coeff[:, : ncore + nact], ncas=nact, ncore=ncore
+        my_mcscf,
+        mo_coeff=mo_coeff[:, : nfzc + ncore + nact],
+        ncas=nact,
+        ncore=nfzc + ncore,
     )
 
     h1e = np.zeros((norb, norb))
+
+    # print(ncore, ncore + nact, nfzc + ncore, nfzc + ncore + nact)
+
     h1e[ncore : ncore + nact, ncore : ncore + nact] = int1e_res
 
     # set orb_ene #
 
     int1e_res = h1e
-    for i in range(ncore):
-        int1e_res[i, i] = orb_ene[i]
-    for i in range(ncore + nact, norb):
-        int1e_res[i, i] = orb_ene[i]
+    for i in range(nfzc, nfzc + ncore):
+        int1e_res[i - nfzc, i - nfzc] = orb_ene[i]
+    for i in range(nfzc + ncore + nact, nfzc + norb):
+        int1e_res[i - nfzc, i - nfzc] = orb_ene[i]
 
     # shift energy_core #
 
-    for i in range(ncore):
+    for i in range(nfzc, nfzc + ncore):
         energy_core -= 2 * orb_ene[i]
+
+    # for i in range(nfzc):
+    #     energy_core += 2 * orb_ene[i]
 
     # get core #
 
@@ -68,7 +87,7 @@ def fcidump_Dyall(
             energy_core,
             norb,
             Mol.nelectron,
-            OrbSymID,
+            OrbSymID[nfzc:],
         )
     else:
         tools.fcidump.from_integrals(
@@ -77,7 +96,7 @@ def fcidump_Dyall(
             h2e=int2e_res,
             nuc=energy_core,
             nmo=norb,
-            nelec=Mol.nelectron,  # Useless
+            nelec=Mol.nelectron-2*nfzc,  # Useless
             tol=1e-10,
-            orbsym=OrbSymID,
+            orbsym=OrbSymID[nfzc:],
         )

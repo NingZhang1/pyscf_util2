@@ -18,7 +18,7 @@ mol = gto.M(
             C   0.000000000000       0.000000000000      -0.621265
             C   0.000000000000       0.000000000000       0.621265
             """,
-    basis={"C": "cc-pvdz", "O": "cc-pvdz"},
+    basis={"C": "cc-pvtz", "O": "cc-pvdz"},
     spin=0,
     charge=0,
     symmetry="d2h",
