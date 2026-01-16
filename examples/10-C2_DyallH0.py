@@ -18,7 +18,7 @@ mol = gto.M(
             C   0.000000000000       0.000000000000      -0.621265
             C   0.000000000000       0.000000000000       0.621265
             """,
-    basis={"C": "cc-pvtz", "O": "cc-pvdz"},
+    basis={"C": "cc-pvdz", "O": "cc-pvdz"},
     spin=0,
     charge=0,
     symmetry="d2h",
@@ -117,4 +117,13 @@ fcidump_Dyall(
     8,
     mol.nao - 10,
     _filename="FCIDUMP_Dyall_C2",
+)
+
+fcidump_gFock(
+    mol,
+    # CASSCF_Driver,
+    mo_coeff_new,
+    # orb_ene,
+    new_fock,
+    _filename="FCIDUMP_gFock_C2",
 )

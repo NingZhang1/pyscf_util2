@@ -115,7 +115,7 @@ def _load_app(env_var):
 
 ICIPT2_CSF_DRIVER = _iCIPT2_Driver(_load_app("ICI_CSF_CPP"), _FILE_NOT_REMOVE)
 ICIPT2_DET_DRIVER = _iCIPT2_Driver(_load_app("ICI_DET_CPP"), _FILE_NOT_REMOVE) # skip
-ICIPT2_DET_DRIVER = None
+# ICIPT2_DET_DRIVER = None
 
 
 def kernel(

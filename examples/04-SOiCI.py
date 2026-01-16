@@ -48,15 +48,15 @@ hso = numpy.vstack((hso, hsf))
 file_sodkh13.Dump_Relint_iCI("RELDUMP", hso, Cl_atm.nao)
 # exit(1)
 
-kernel(
-    True,
-    task_name="iCIPT2_Cl",
-    fcidump=FCIDUMP_NAME,
-    segment="5 0 4 4 %d 0" % (Cl_atm.nao - 13),
-    nelec_val=7,
-    relative=1,
-    cmin="1e-4",
-    perturbation=1,
-    Task="1 5 1 1 1 6 1 1 1 7 1 1",
-    doublegroup="d2h",
-)
+# kernel(
+#     True,
+#     task_name="iCIPT2_Cl",
+#     fcidump=FCIDUMP_NAME,
+#     segment="5 0 4 4 %d 0" % (Cl_atm.nao - 13),
+#     nelec_val=7,
+#     relative=1,
+#     cmin="1e-4",
+#     perturbation=1,
+#     Task="1 5 1 1 1 6 1 1 1 7 1 1",
+#     doublegroup="d2h",
+# )
