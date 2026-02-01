@@ -29,7 +29,7 @@ def fcidump_sfx2c(mol, scf, mo_coeff, filename="FCIDUMP", tol=1e-10):
     # print(h1e)
 
     int2e_full = pyscf.ao2mo.full(eri_or_mol=mol, mo_coeff=mo_coeff[:, :nao], aosym="4")
-    int2e_full = pyscf.ao2mo.restore(8, int2e_full.copy(), nao)
+    # int2e_full = pyscf.ao2mo.restore(8, int2e_full.copy(), nao)
 
     OrbSym = pyscf.symm.label_orb_symm(
         mol, mol.irrep_name, mol.symm_orb, mo_coeff[:, :nao]
