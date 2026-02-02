@@ -15,7 +15,9 @@ from functools import reduce
 import numpy
 
 
-def get_generalized_fock(mc, mo_coeff, rdm1, with_g3=False):
+def get_generalized_fock(
+    mc, mo_coeff, rdm1, with_g3=False, only_g3=False, _opt_impl=True
+):
     """
     casdm1 (ndarray): 1-particle density matrix in active space. Without
             input casdm1, the density matrix is computed with the input ci
@@ -30,7 +32,12 @@ def get_generalized_fock(mc, mo_coeff, rdm1, with_g3=False):
     assert rdm1 is not None
     assert mo_coeff is not None
 
-    fock_ao = get_fock(mc, mo_coeff=mo_coeff, casdm1=rdm1)
+    if only_g3 and not with_g3:
+        nmo = mo_coeff.shape[1]
+        return numpy.zeros((nmo, nmo))
+
+    if not only_g3:
+        fock_ao = get_fock(mc, mo_coeff=mo_coeff, casdm1=rdm1)
 
     if not with_g3:
         return reduce(numpy.dot, (mo_coeff.conj().T, fock_ao, mo_coeff))
@@ -41,22 +48,34 @@ def get_generalized_fock(mc, mo_coeff, rdm1, with_g3=False):
         ncore = mc.ncore
         nact = rdm1.shape[0]
         nmo = mo_coeff.shape[0]
-        int2e = pyscf.ao2mo.general(
-            mol,
-            (mo_coeff, mo_coeff, mo_coeff, mo_coeff),
-            aosym="1",
-            compact=False,
-        ).reshape(nmo, nmo, nmo, nmo)
         Dd = numpy.dot(rdm1, d)
-        K = numpy.einsum(
-            "prsq,rs->pq", int2e[:, ncore : ncore + nact, ncore : ncore + nact, :], Dd
-        )
-        Dd_full = numpy.zeros_like(K)
+        Dd_full = numpy.zeros((nmo, nmo))
         Dd_full[ncore : ncore + nact, ncore : ncore + nact] = Dd
+
+        if _opt_impl:
+            Dd_full_AO = reduce(numpy.dot, (mo_coeff, Dd_full, mo_coeff.T))
+            K_ao = mc._scf.get_k(dm=Dd_full_AO)
+            K = reduce(numpy.dot, (mo_coeff.T, K_ao, mo_coeff))
+        else:
+            int2e = pyscf.ao2mo.general(
+                mol,
+                (mo_coeff, mo_coeff, mo_coeff, mo_coeff),
+                aosym="1",
+                compact=False,
+            ).reshape(nmo, nmo, nmo, nmo)
+            K = numpy.einsum(
+                "prsq,rs->pq",
+                int2e[:, ncore : ncore + nact, ncore : ncore + nact, :],
+                Dd,
+            )
         g3 = -0.5 * reduce(numpy.dot, (Dd_full, K, Dd_full))
         # print(g3)
         # exit(1)
-        return reduce(numpy.dot, (mo_coeff.conj().T, fock_ao, mo_coeff)) + g3
+
+        if only_g3:
+            return g3
+        else:
+            return reduce(numpy.dot, (mo_coeff.conj().T, fock_ao, mo_coeff)) + g3
 
 
 ############## integral MRPT2 ##############
@@ -512,6 +531,10 @@ Cr     0.0000      0.0000  -%f
     print(mo_energy)
 
     gfock = get_generalized_fock(CASSCF_Driver, mo_coeff, rdm1)
+
+    g3_1 = get_generalized_fock(CASSCF_Driver, mo_coeff, rdm1, True, True, True)
+    g3_2 = get_generalized_fock(CASSCF_Driver, mo_coeff, rdm1, True, True, False)
+    assert numpy.allclose(g3_1, g3_2)
 
     # fcidump #
 

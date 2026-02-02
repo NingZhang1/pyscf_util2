@@ -15,8 +15,8 @@ from pyscf_util.mrpt2.un_nevpt2 import *
 mol = gto.M(
     verbose=10,
     atom="""
-            Cr   0.000000000000       0.000000000000      -4.84
-            Cr   0.000000000000       0.000000000000       4.84
+            Cr   0.000000000000       0.000000000000      -0.84
+            Cr   0.000000000000       0.000000000000       0.84
             """,
     basis={"Cr": "cc-pvdz-dk", "O": "cc-pvdz-dk"},
     spin=12,
@@ -86,7 +86,9 @@ gfock = get_generalized_fock(CASSCF_Driver, mo_coeff, rdm1)
 
 ### 正则化 ###
 
-mo_coeff_new, new_fock, orb_ene = Canonicalize(mol, mo_coeff, gfock, 18, 12, mol.nao - 30)
+mo_coeff_new, new_fock, orb_ene = Canonicalize(
+    mol, mo_coeff, gfock, 18, 12, mol.nao - 30
+)
 
 for i in range(mol.nao):
     for j in range(mol.nao):
@@ -106,7 +108,7 @@ dump_heff_casci(
     mol,
     CASSCF_Driver,
     mo_coeff_new[:, :10],
-    mo_coeff_new[:, 10:18+12+14],
+    mo_coeff_new[:, 10 : 18 + 12 + 4],
     _filename="FCIDUMP_Cr2",
 )
 
@@ -118,7 +120,7 @@ fcidump_Dyall(
     8,
     12,
     # mol.nao - 30,
-    14,
+    4,
     10,
     _filename="FCIDUMP_Dyall_Cr2",
 )
