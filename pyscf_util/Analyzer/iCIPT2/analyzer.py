@@ -295,7 +295,7 @@ def LinearRegression_EstimateError(x, y, print_verbose=False):
 
 @dataclass
 class Regression_Analysis:
-    data: list[iCIPT2_Data]
+    data: list
     linear_extra: float
     linear_error: float
     weighted_linear_extra: float
@@ -328,7 +328,7 @@ class Regression_Analysis:
         return res
 
 
-def extra_icipt2_data(data: list[iCIPT2_Data], npnt: int = 5):
+def extra_icipt2_data(data: list, npnt: int = 5):
     x = [i.ept for i in data]
     if len(x) > npnt:
         x = x[-npnt:]
