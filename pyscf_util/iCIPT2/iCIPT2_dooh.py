@@ -11,7 +11,7 @@ def kernel(
     segment,
     nelec_val,
     rotatemo=0,
-    cmin: str | float = 1e-4,
+    cmin=1e-4,
     perturbation=0,
     dumprdm=0,
     relative=0,

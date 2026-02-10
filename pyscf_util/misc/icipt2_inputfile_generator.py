@@ -85,7 +85,7 @@ def _Generate_InputFile_iCI_CVS(
     selection=1,
     doublegroup=None,
     direct=None,
-    relaxcore=None,
+    relaxcore=None
 ):
     inputfile = open(inputfilename, "w")
     inputfile.write("nsegment=%s\n" % (Segment))
