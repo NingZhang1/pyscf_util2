@@ -73,7 +73,16 @@ def extract_nevpt2s_old_type(filename: str):
             print(f"Error: File {filename} does not contain the required string.")
 
 
-def extract_nevpt2s_new_type(filename: str):
+def extract_nevpt2s_new_type(filename: str, with_LCUA=False, with_full_gFock=False):
+
+    raw_data_factor = 10
+    if with_full_gFock:
+        with_LCUA = True
+    if with_full_gFock:
+        raw_data_factor += 5
+    if with_LCUA:
+        raw_data_factor += 5
+
     with open(filename, "r") as file:
         content = file.read()
         if "--------------------- MRPT2 Driver End ---------------------" in content:
@@ -105,26 +114,83 @@ def extract_nevpt2s_new_type(filename: str):
 
             # print(res_tmp)
 
-            assert len(res_tmp) == len(matches) * 10
+            assert len(res_tmp) == len(matches) * raw_data_factor
 
             res = {}
 
             for idxqmin, qmin in enumerate(matches):
                 res[qmin] = {}
 
-                for i in range(idxqmin * 10, idxqmin * 10 + 5):
+                for i in range(
+                    idxqmin * raw_data_factor, idxqmin * raw_data_factor + 5
+                ):
                     res[qmin][(res_tmp[i][0], res_tmp[i][1])] = {
                         "etot": 0.0,
                         "ept": res_tmp[i][2],
+                        "etot_lcua": 0.0,
+                        "etot_full": 0.0,
                     }
 
-                for i in range(idxqmin * 10 + 5, idxqmin * 10 + 10):
+                for i in range(
+                    idxqmin * raw_data_factor + 5, idxqmin * raw_data_factor + 10
+                ):
                     res[qmin][(res_tmp[i][0], res_tmp[i][1])]["etot"] = res_tmp[i][2]
+
+                if with_LCUA:
+                    for i in range(
+                        idxqmin * raw_data_factor + 10, idxqmin * raw_data_factor + 15
+                    ):
+                        res[qmin][(res_tmp[i][0], res_tmp[i][1])]["etot_lcua"] = (
+                            res_tmp[i][2]
+                        )
+
+                if with_full_gFock:
+                    for i in range(
+                        idxqmin * raw_data_factor + 15, idxqmin * raw_data_factor + 20
+                    ):
+                        res[qmin][(res_tmp[i][0], res_tmp[i][1])]["etot_full"] = (
+                            res_tmp[i][2]
+                        )
 
             return res
 
         else:
             print(f"Error: File {filename} does not contain the required string.")
+
+
+def print_out_results(
+    nevpt2s: dict, with_LCUA: bool = False, with_full_gFock: bool = False
+):
+    for qmin, data in nevpt2s.items():
+        print(f"Qmin: {qmin}")
+        # print ept and etot as a table
+        if with_full_gFock:
+            table_data = [
+                [
+                    i,
+                    j,
+                    value["ept"],
+                    value["etot"],
+                    value["etot_lcua"],
+                    value["etot_full"],
+                ]
+                for (i, j), value in data.items()
+            ]
+            headers = ["ncore", "nvirt", "ept", "etot", "etot_lcua", "etot_full"]
+        else:
+            if with_LCUA:
+                table_data = [
+                    [i, j, value["ept"], value["etot"], value["etot_lcua"]]
+                    for (i, j), value in data.items()
+                ]
+                headers = ["ncore", "nvirt", "ept", "etot", "etot_lcua"]
+            else:
+                table_data = [
+                    [i, j, value["ept"], value["etot"]]
+                    for (i, j), value in data.items()
+                ]
+                headers = ["ncore", "nvirt", "ept", "etot"]
+        print(tabulate(table_data, headers, tablefmt="grid", floatfmt="15.12f"))
 
 
 ############################################
@@ -149,3 +215,13 @@ if __name__ == "__main__":
     filename = "mr_sel.out2"
     nevpt2s = extract_nevpt2s_new_type(filename)
     print(nevpt2s)
+
+    filename = "mr_sel.out3"
+    nevpt2s = extract_nevpt2s_new_type(filename, True)
+    print_out_results(nevpt2s, True)
+    # print(nevpt2s)
+
+    filename = "mr_sel.out4"
+    nevpt2s = extract_nevpt2s_new_type(filename, True, True)
+    # print(nevpt2s)
+    print_out_results(nevpt2s, True, True)
