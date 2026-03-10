@@ -28,8 +28,13 @@ def dump_heff_casci(_mol, _mcscf, _core_coeff, _mocoeff, _filename="FCIDUMP"):
         _mcscf, mo_coeff=mocoeff, ncas=_mocoeff.shape[1], ncore=loc1
     )
     # get orbsym
-    OrbSym = pyscf.symm.label_orb_symm(_mol, _mol.irrep_name, _mol.symm_orb, _mocoeff)
-    OrbSymID = [pyscf.symm.irrep_name2id(_mol.groupname, x) for x in OrbSym]
+    if _mol.irrep_name is not None:
+        OrbSym = pyscf.symm.label_orb_symm(
+            _mol, _mol.irrep_name, _mol.symm_orb, _mocoeff
+        )
+        OrbSymID = [pyscf.symm.irrep_name2id(_mol.groupname, x) for x in OrbSym]
+    else:
+        OrbSymID = [0 for _ in range(_mocoeff.shape[1])]
     # DUMP
     if _filename == None:
         return (

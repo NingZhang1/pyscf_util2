@@ -17,6 +17,7 @@ def fcidump_size_consistency(
     h1e_1,
     h2e_1,
     e_core_1,  #
+    orbsym_1,  #
     ncore_1,
     nact_1,
     nvirt_1,  #
@@ -25,6 +26,7 @@ def fcidump_size_consistency(
     h1e_2,
     h2e_2,
     e_core_2,  #
+    orbsym_2,  #
     ncore_2,
     nact_2,
     nvirt_2,  #
@@ -106,7 +108,17 @@ def fcidump_size_consistency(
                 for s in range(norb_2):
                     h2e[map_2[p], map_2[q], map_2[r], map_2[s]] = h2e_2[p, q, r, s]
 
+    # orb_sym = [0 for _ in range(norb)]
+
+    # build orb sym #
+
     orb_sym = [0 for _ in range(norb)]
+
+    for p in range(norb_1):
+        orb_sym[map_1[p]] = orbsym_1[p]
+
+    for p in range(norb_2):
+        orb_sym[map_2[p]] = orbsym_2[p]
 
     if _filename == None:
         return (

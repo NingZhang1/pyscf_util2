@@ -7,6 +7,7 @@ PySCF结构优化工具函数
 
 import numpy as np
 from pyscf import gto, scf, dft, cc, mcscf
+
 # from pyscf.geomopt import berny_solver, ase_solver
 from pyscf.geomopt import berny_solver
 from pyscf.geomopt.berny_solver import optimize
@@ -20,19 +21,19 @@ def geometry_optimization(
     symmetry=None,
     sfx2c=False,
     charge=0,
-    basis='def2-TZVP',
-    method='HF',
+    basis="def2-TZVP",
+    method="HF",
     max_iter=100,
     conv_tol=1e-8,
     conv_tol_grad=1e-6,
     conv_tol_energy=1e-8,
-    solver='berny',
+    solver="berny",
     verbose=4,
-    **kwargs
+    **kwargs,
 ):
     """
     PySCF分子结构优化函数
-    
+
     参数:
     ----------
     mol_geometry : str or list
@@ -65,7 +66,7 @@ def geometry_optimization(
         输出详细程度，默认4
     **kwargs : dict
         其他传递给PySCF的参数
-    
+
     返回:
     ----------
     dict
@@ -77,11 +78,11 @@ def geometry_optimization(
         - 'iterations': 迭代次数
         - 'gradient_norm': 最终梯度范数
     """
-    
+
     # 设置PySCF参数
     # lib.param.TMPDIR = './tmp'
     # lib.param.VERBOSE = verbose
-    
+
     # 解析分子构型
     if isinstance(mol_geometry, str):
         # 如果是xyz格式字符串
@@ -91,7 +92,7 @@ def geometry_optimization(
         mol = create_mol_from_coords(mol_geometry)
     else:
         raise ValueError("mol_geometry必须是字符串或列表格式")
-    
+
     # 设置分子属性
     mol.charge = charge
     mol.spin = spin
@@ -99,39 +100,40 @@ def geometry_optimization(
     mol.symmetry = symmetry
     mol.verbose = verbose
     mol.build()
-    
+
     # 选择计算方法
-    if method.upper() == 'HF':
+    if method.upper() == "HF":
         mf = scf.RHF(mol)
     elif method.upper() == "ROHF":
         mf = scf.ROHF(mol)
-    elif method.upper() == 'DFT':
-        functional = kwargs.get('functional', 'B3LYP')
+    elif method.upper() == "DFT":
+        functional = kwargs.get("functional", "B3LYP")
         mf = dft.RKS(mol, xc=functional)
-    elif method.upper() in ['CCSD', 'CCSD(T)']:
+    elif method.upper() in ["CCSD", "CCSD(T)"]:
         mf = scf.RHF(mol)
         mf.run()
-        if method.upper() == 'CCSD':
+        if method.upper() == "CCSD":
             mf = cc.CCSD(mf)
         else:
             mf = cc.CCSD(T)(mf)
-    elif method.upper() == 'CASSCF':
-        ncas = kwargs.get('ncas', 2)
-        nelecas = kwargs.get('nelecas', 2)
+    elif method.upper() == "CASSCF":
+        ncas = kwargs.get("ncas", 2)
+        nelecas = kwargs.get("nelecas", 2)
         mf = scf.RHF(mol)
         mf.run()
         mf = mcscf.CASSCF(mf, ncas, nelecas)
     else:
         raise ValueError(f"不支持的方法: {method}")
-    
+
     # 如果使用sf-X2C
     if sfx2c:
         try:
             from pyscf import x2c
+
             mf = x2c.sfx2c1e(mf)
         except ImportError:
             warnings.warn("sf-X2C模块未安装，将使用非相对论方法")
-    
+
     # 运行初始计算
     try:
         mf.run()
@@ -140,81 +142,82 @@ def geometry_optimization(
         # 尝试使用更简单的设置
         mf = scf.RHF(mol)
         mf.run()
-    
+
     # 选择优化器
-    if solver.lower() == 'berny':
+    if solver.lower() == "berny":
         optimizer = berny_solver.GeometryOptimizer(mf)
-    elif solver.lower() == 'ase':
+    elif solver.lower() == "ase":
         optimizer = ase_solver.GeometryOptimizer(mf)
     else:
         raise ValueError(f"不支持的优化器: {solver}")
-    
+
     # 设置优化参数
     optimizer.max_iter = max_iter
     optimizer.conv_tol = conv_tol
     optimizer.conv_tol_grad = conv_tol_grad
     optimizer.conv_tol_energy = conv_tol_energy
-    
+
     # 执行结构优化
     print(f"开始{method}方法的结构优化...")
     print(f"初始能量: {mf.e_tot:.8f} Hartree")
-    
+
     try:
         mol_eq = optimizer.optimize()
-        
-        # rerun # 
+
+        # rerun #
 
         # 选择计算方法
-        if method.upper() == 'HF':
+        if method.upper() == "HF":
             mf = scf.RHF(mol_eq)
         elif method.upper() == "ROHF":
             mf = scf.ROHF(mol_eq)
-        elif method.upper() == 'DFT':
-            functional = kwargs.get('functional', 'B3LYP')
+        elif method.upper() == "DFT":
+            functional = kwargs.get("functional", "B3LYP")
             mf = dft.RKS(mol_eq, xc=functional)
-        elif method.upper() in ['CCSD', 'CCSD(T)']:
+        elif method.upper() in ["CCSD", "CCSD(T)"]:
             mf = scf.RHF(mol_eq)
             mf.run()
-            if method.upper() == 'CCSD':
+            if method.upper() == "CCSD":
                 mf = cc.CCSD(mf)
             else:
                 mf = cc.CCSD(T)(mf)
-        elif method.upper() == 'CASSCF':
-            ncas = kwargs.get('ncas', 2)
-            nelecas = kwargs.get('nelecas', 2)
+        elif method.upper() == "CASSCF":
+            ncas = kwargs.get("ncas", 2)
+            nelecas = kwargs.get("nelecas", 2)
             mf = scf.RHF(mol_eq)
             mf.run()
             mf = mcscf.CASSCF(mf, ncas, nelecas)
         else:
             raise ValueError(f"不支持的方法: {method}")
-    
+
         # 如果使用sf-X2C
         if sfx2c:
             try:
                 from pyscf import x2c
+
                 mf = x2c.sfx2c1e(mf)
             except ImportError:
                 warnings.warn("sf-X2C模块未安装，将使用非相对论方法")
-        
-        # rerun # 
+
+        # rerun #
         mf.run()
 
         print(f"优化完成!")
         print(f"最终能量: {mf.e_tot:.8f} Hartree")
-        
+
         # 获取优化结果
         result = {
-            'mol': mol_eq,
-            'energy': mf.e_tot,
-            'coordinates': mol_eq.atom_coords(),
-            'converged': optimizer.converged,
-            'mf':mf
+            "mol": mol_eq,
+            "energy": mf.e_tot,
+            "coordinates": mol_eq.atom_coords(),
+            "converged": optimizer.converged,
+            "mf": mf,
             # 'iterations': optimizer.iter_count,
             # 'gradient_norm': optimizer.grad_norm
         }
-        
+
         return result
-        
+
     except Exception as e:
         print(f"结构优化失败: {e}")
         return None
@@ -223,30 +226,30 @@ def geometry_optimization(
 def parse_xyz_string(xyz_string):
     """
     解析xyz格式字符串并创建分子对象
-    
+
     参数:
     ----------
     xyz_string : str
         xyz格式的分子构型字符串
-    
+
     返回:
     ----------
     pyscf.gto.Mole
         分子对象
     """
-    lines = xyz_string.strip().split('\n')
-    
+    lines = xyz_string.strip().split("\n")
+
     # 跳过注释行和空行
     atoms = []
     for line in lines:
         line = line.strip()
-        if line and not line.startswith('#'):
+        if line and not line.startswith("#"):
             parts = line.split()
             if len(parts) >= 4:
                 atom_symbol = parts[0]
                 x, y, z = map(float, parts[1:4])
                 atoms.append([atom_symbol, [x, y, z]])
-    
+
     # 创建分子对象
     mol = gto.Mole()
     mol.atom = atoms
@@ -256,12 +259,12 @@ def parse_xyz_string(xyz_string):
 def create_mol_from_coords(atom_list):
     """
     从原子坐标列表创建分子对象
-    
+
     参数:
     ----------
     atom_list : list
         原子坐标列表，格式: [['原子符号', [x, y, z]], ...]
-    
+
     返回:
     ----------
     pyscf.gto.Mole
@@ -275,7 +278,7 @@ def create_mol_from_coords(atom_list):
 def print_optimization_summary(result):
     """
     打印结构优化结果摘要
-    
+
     参数:
     ----------
     result : dict
@@ -284,17 +287,17 @@ def print_optimization_summary(result):
     if result is None:
         print("结构优化失败")
         return
-    
-    print("\n" + "="*50)
+
+    print("\n" + "=" * 50)
     print("结构优化结果摘要")
-    print("="*50)
+    print("=" * 50)
     print(f"最终能量: {result['energy']:.8f} Hartree")
     print(f"收敛状态: {'是' if result['converged'] else '否'}")
     # print(f"迭代次数: {result['iterations']}")
     # print(f"梯度范数: {result['gradient_norm']:.2e}")
-    
+
     print("\n优化后的分子构型:")
-    mol = result['mol']
+    mol = result["mol"]
     # for i, (atom, coord) in enumerate(zip(mol.atom_symbol(), mol.atom_coords())):
     #     print(f"{atom:2s} {coord[0]:12.6f} {coord[1]:12.6f} {coord[2]:12.6f}")
 
@@ -315,25 +318,25 @@ if __name__ == "__main__":
     H  0.000000  0.000000  1.000000
     H  0.000000  1.000000  0.000000
     """
-    
+
     print("示例1: 水分子HF结构优化")
     result1 = geometry_optimization(
         mol_geometry=water_xyz,
         spin=0,
-        method='HF',
-        basis='cc-pvdz',
+        method="HF",
+        basis="cc-pvdz",
         verbose=3,
-        symmetry='C2v'
+        symmetry="C2v",
     )
     print_optimization_summary(result1)
-    
+
     # 示例2: 使用DFT方法
     print("\n示例2: 水分子DFT结构优化")
     result2 = geometry_optimization(
         mol_geometry=water_xyz,
-        method='DFT',
-        functional='B3LYP',
-        basis='6-31G',
-        verbose=3
+        method="DFT",
+        functional="B3LYP",
+        basis="6-31G",
+        verbose=3,
     )
     print_optimization_summary(result2)

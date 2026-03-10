@@ -54,6 +54,7 @@ def ReadIn_SpinRDM1(filename, norb, nstates, IsAveraged=False):
         rdm1[istate, i, j] = val
         return rdm1
 
+
 def ReadIn_rdm1(TaskName, nao, nmo=None, skiprows=1):
     filename = TaskName + ".csv"
     i, j, val = numpy.loadtxt(

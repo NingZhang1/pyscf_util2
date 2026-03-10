@@ -84,40 +84,40 @@ def convert_bdf_to_pyscf(
     # 读取 BDF 的对称性轨道信息
     ao2somat_bdf = read_ao2somat_from_chkfil(chkfil_path)
     ao2somat_bdf = ao2somat_split_based_on_irrep(ao2somat_bdf, Mol)
-    
+
     # 读取并解析 BDF 轨道文件
     parser = BDFOrbParser(scforb_path)
     parser.parse_file()
     # 如果需要，转换为新的 BDF 约定
     if old_bdf_convention:
         parser.BDFold_2_new()
-    
+
     # 收集轨道数据
     mo_coeffs = []
     energies = []
     occupancies = []
-    
+
     # 按不可约表示处理轨道
     for irrep in range(len(Mol.irrep_name)):
         mo_coeff_tmp = ao2somat_bdf[irrep] @ parser.get_sym_data(irrep)
         mo_coeffs.append(mo_coeff_tmp)
         energies.append(parser.get_sym_energies(irrep))
         occupancies.append(parser.get_sym_occupations(irrep))
-    
+
     # 合并所有不可约表示的轨道数据
     mo_coeffs = np.hstack(mo_coeffs)
     energies = np.hstack(energies)
     occupancies = np.hstack(occupancies)
-    
+
     # 将轨道数据写入 BDF 格式
     dump_to_scforb(
         Mol, mo_coeffs, energies, occupancies, output_scforb, is_casorb=is_casorb
     )
-    
+
     # 使用 MOKIT 工具进行格式转换
     fchk(mf, output_fch)
     os.system(f"{BDF2FCH} {output_scforb} {output_fch} {output_fch_new}")
-    
+
     # 读取转换后的轨道
     mo_coeffs_bdf = mo_fch2py(output_fch_new)
 
