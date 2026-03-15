@@ -141,6 +141,40 @@ def extract_icipt2_data_from_file2(file_path: str):
     return extracted_data
 
 
+def extract_icipt2_data_from_file3(file_path: str):
+    # 读取文件内容
+    content = None
+    with open(file_path, "r") as file:
+        content = file.read()
+    # print(content)
+
+    # 正则表达式匹配符合的块和数据
+
+    # pattern = r"\*+ iCI_ENPT\(2\)_NonRela::Info \*+\n+_+\n+\s+spintwo\s+\|\s+symmetry\s+\|\s+ncfg\s+\|\s+ncsf\s+\|\s+evar\s+\|\s+ept\s+\|\s+etot\s+.*?\n+"  # title
+    pattern = r"\s+(\d+)\s+\|\s+(\d+)\s+\|\s+(\d+)\s+\|\s+(\d+)\s+\|\s+([-+]?\d*\.\d+)\s+\|\s+([-+]?\d*\.\d+)\s+\|\s+([-+]?\d*\.\d+)"  # data
+
+    # 使用正则表达式找到所有符合的数据块
+    matches = re.findall(pattern, content)
+
+    # print(matches)
+
+    # 存储匹配到的数据
+    extracted_data = []
+
+    # 遍历每个匹配结果，并将其转换为 iCIPT2_Data 对象
+    for match in matches:
+        data = iCIPT2_Data(
+            ncfg=int(match[2]),
+            ncsf=int(match[3]),
+            evar=float(match[4]),
+            ept=float(match[5]),
+            etot=float(match[6]),
+        )
+        extracted_data.append(data)
+
+    return extracted_data
+
+
 # extra #
 
 from scipy.optimize import curve_fit
