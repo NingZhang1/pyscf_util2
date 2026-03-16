@@ -99,7 +99,7 @@ def _make_pyscf_rdm12(
     # we have to add the contr from rdm1
     # ####################################
 
-    for i in range(norb):
+    for i in range(ncas):
         rdm2[:, i, i, :] += rdm1
 
     return rdm1, rdm2
