@@ -56,21 +56,52 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
     ### do linear analysis ###
 
     if NLAST_REMOVE is None:
+        # linear #
         _, linear_extra, _, linear_error = LinearRegression_EstimateError(
             ept[-NEXTRA:], etot[-NEXTRA:]
         )
+        # weighted linear #
         weighted_linear_extra, weighted_linear_error, slope, intercept = (
             weighted_linear_fit_estimate_error(
                 ept[-NEXTRA:], etot[-NEXTRA:], False, True
             )
         )
+        # quad #
+        quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
+            ept[-NEXTRA:], etot[-NEXTRA:], False, False
+        )
+        # weighted quad #
+        weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
+            weighted_quadratic_fit_estimate_error(
+                ept[-NEXTRA:], etot[-NEXTRA:], False, True
+            )
+        )
+
     else:
+        # linear #
         _, linear_extra, _, linear_error = LinearRegression_EstimateError(
             ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
             etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
         )
+        # weighted linear #
         weighted_linear_extra, weighted_linear_error, slope, intercept = (
             weighted_linear_fit_estimate_error(
+                ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                False,
+                True,
+            )
+        )
+        # quad #
+        quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
+            ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+            etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+            False,
+            False,
+        )
+        # weighted quad #
+        weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
+            weighted_quadratic_fit_estimate_error(
                 ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
                 etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
                 False,
@@ -89,6 +120,13 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
         "weighted_linear_error": weighted_linear_error,
         "slope": slope,
         "intercept": intercept,
+        "a": a,
+        "b": b,
+        "c": c,
+        "quadratic_extra": quadratic_extra,
+        "quadratic_error": quadratic_error,
+        "weighted_quadratic_extra": weighted_quadratic_extra,
+        "weighted_quadratic_error": weighted_quadratic_error,
     }
 
 
@@ -106,7 +144,9 @@ def draw_extra_pic(
     fig_title=f"iCIPT2 Regression",
     origin_data_label=f"Original Data",
     linear_fit_label=f"Weighted Linear Fit",
+    quadratic_fit_label=f"Weighted Quadratic Fit",
     add_err_bar=True,
+    use_quadratic=False,
     shown=True,
     save_fig=False,
     fig_path=None,
@@ -129,33 +169,29 @@ def draw_extra_pic(
         fontweight="bold",
     )
 
-    axes = axes.flatten()
+    try:
+        axes = axes.flatten()
+    except Exception as e:
+        pass
 
     ################################################################
     # loop #
     ################################################################
 
     for idx, taskname in enumerate(subtasks):
-        if idx >= len(axes):
-            break
 
-        ax = axes[idx]
+        try:
+            if idx >= len(axes):
+                break
+            ax = axes[idx]
+        except Exception as e:
+            ax = axes
+            pass
+
         data = DATA[taskname]
 
         ept = data["ept"]
         etot = data["etot"]
-        slope = data["slope"]
-        intercept = data["intercept"]
-        # linear_extra = data["linear_extra"]
-        # linear_error = data["linear_error"]
-        weighted_extra = data["weighted_linear_extra"]
-        weighted_error = data["weighted_linear_error"]
-
-        # 创建拟合直线
-
-        # x_fit = np.linspace(min(ept), max(ept), 100)
-        x_fit = np.linspace(min(ept), 0.0, 1000)
-        y_fit = slope * x_fit + intercept
 
         # 绘制原始数据点
 
@@ -169,17 +205,49 @@ def draw_extra_pic(
             zorder=5,
         )
 
-        # 绘制拟合直线
+        # 绘制拟合曲线
 
-        ax.plot(
-            x_fit,
-            y_fit,
-            "--",
-            color=colors[idx % len(colors)],
-            linewidth=2,
-            label=linear_fit_label,
-            zorder=4,
-        )
+        if not use_quadratic:
+
+            # 创建拟合直线
+
+            slope = data["slope"]
+            intercept = data["intercept"]
+            weighted_extra = data["weighted_linear_extra"]
+            weighted_error = data["weighted_linear_error"]
+
+            x_fit = np.linspace(min(ept), 0.0, 1000)
+            y_fit = slope * x_fit + intercept
+
+            ax.plot(
+                x_fit,
+                y_fit,
+                "--",
+                color=colors[idx % len(colors)],
+                linewidth=2,
+                label=linear_fit_label,
+                zorder=4,
+            )
+
+        else:
+
+            a = data["a"]
+            b = data["b"]
+            c = data["c"]
+            weighted_extra = data["weighted_quadratic_extra"]
+            weighted_error = data["weighted_quadratic_error"]
+            x_fit = np.linspace(min(ept), 0.0, 1000)
+            y_fit = a * x_fit**2 + b * x_fit + c
+
+            ax.plot(
+                x_fit,
+                y_fit,
+                "--",
+                color=colors[idx % len(colors)],
+                linewidth=2,
+                label=quadratic_fit_label,
+                zorder=4,
+            )
 
         # 标记外推点（x=0）
 

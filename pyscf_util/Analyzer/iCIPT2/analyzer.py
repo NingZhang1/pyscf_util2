@@ -209,7 +209,7 @@ def weighted_linear_fit_estimate_error(x, y, print_verbose=False, get_curve=Fals
         return b, b_error
 
 
-def quadratic_fit_estimate_error(x, y, print_verbose=False):
+def quadratic_fit_estimate_error(x, y, print_verbose=False, get_curve=False):
     # Define the form of the function we want to fit
     def func(x, a, b, c):
         return a * x**2 + b * x + c
@@ -218,39 +218,8 @@ def quadratic_fit_estimate_error(x, y, print_verbose=False):
     y = np.asarray(y)
 
     # Use curve_fit to fit the function to our data. popt will contain the fitted parameters
-    popt, pcov = curve_fit(func, x, y)
-
-    # Generate predicted y values from our fitted function
-    y_pred = func(x, *popt)
-
-    # Calculate the root mean square error between the predicted and actual y values
-    c = popt[2]
-    c_error = np.sqrt(pcov[2][2])
-
-    if print_verbose:
-        print("Quadratic Regression : \n")
-        print("a                 : %15.8f\n" % popt[0])
-        print("b                 : %15.8f\n" % popt[1])
-        print("c                 : %15.8f\n" % popt[2])
-        print("c_error           : %15.8f\n" % c_error)
-
-    return c, c_error
-
-
-def weighted_quadratic_fit_estimate_error(x, y, print_verbose=False):
-    # Define the form of the function we want to fit
-    def func(x, a, b, c):
-        return a * x**2 + b * x + c
-
-    x = np.asarray(x)
-    y = np.asarray(y)
-
-    # Use curve_fit to fit the function to our data. popt will contain the fitted parameters
-    # popt, pcov = curve_fit(func, x, y, sigma=1 / abs(x), absolute_sigma=True)
-    # popt, pcov = curve_fit(func, x, y, sigma=abs(x), absolute_sigma=True)
-    # popt, pcov = curve_fit(func, x, y, sigma=abs(x))
     popt, pcov = curve_fit(
-        func, x, y, sigma=abs(x), p0=[(y[-1] - y[-2]) / (x[-1] - x[-2]), y[-1]]
+        func, x, y, p0=[0.0, (y[-1] - y[-2]) / (x[-1] - x[-2]), y[-1]]
     )
 
     # Generate predicted y values from our fitted function
@@ -267,7 +236,46 @@ def weighted_quadratic_fit_estimate_error(x, y, print_verbose=False):
         print("c                 : %15.8f\n" % popt[2])
         print("c_error           : %15.8f\n" % c_error)
 
-    return c, c_error
+    if get_curve:
+        return c, c_error, popt[0], popt[1], popt[2]
+    else:
+        return c, c_error
+
+
+def weighted_quadratic_fit_estimate_error(x, y, print_verbose=False, get_curve=False):
+    # Define the form of the function we want to fit
+    def func(x, a, b, c):
+        return a * x**2 + b * x + c
+
+    x = np.asarray(x)
+    y = np.asarray(y)
+
+    # Use curve_fit to fit the function to our data. popt will contain the fitted parameters
+    # popt, pcov = curve_fit(func, x, y, sigma=1 / abs(x), absolute_sigma=True)
+    # popt, pcov = curve_fit(func, x, y, sigma=abs(x), absolute_sigma=True)
+    # popt, pcov = curve_fit(func, x, y, sigma=abs(x))
+    popt, pcov = curve_fit(
+        func, x, y, sigma=abs(x), p0=[0.0, (y[-1] - y[-2]) / (x[-1] - x[-2]), y[-1]]
+    )
+
+    # Generate predicted y values from our fitted function
+    y_pred = func(x, *popt)
+
+    # Calculate the root mean square error between the predicted and actual y values
+    c = popt[2]
+    c_error = np.sqrt(pcov[2][2])
+
+    if print_verbose:
+        print("Quadratic Regression : \n")
+        print("a                 : %15.8f\n" % popt[0])
+        print("b                 : %15.8f\n" % popt[1])
+        print("c                 : %15.8f\n" % popt[2])
+        print("c_error           : %15.8f\n" % c_error)
+
+    if get_curve:
+        return c, c_error, popt[0], popt[1], popt[2]
+    else:
+        return c, c_error
 
 
 def LinearRegression_EstimateError(x, y, print_verbose=False):
