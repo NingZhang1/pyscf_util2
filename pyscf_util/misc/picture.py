@@ -139,6 +139,7 @@ def draw_extra_pic(
     DATA,
     nfig_x,
     nfig_y,
+    subtasks=None,
     figsize_x=16,
     figsize_y=12,
     fig_title=f"iCIPT2 Regression",
@@ -151,7 +152,8 @@ def draw_extra_pic(
     save_fig=False,
     fig_path=None,
 ):
-    subtasks = DATA.keys()
+    if subtasks is None:
+        subtasks = DATA.keys()
 
     colors = ["blue", "red", "green", "orange", "purple", "brown"]
 
