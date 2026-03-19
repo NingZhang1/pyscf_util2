@@ -53,81 +53,102 @@ from pyscf_util.Analyzer.iCIPT2.analyzer import *
 
 def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
 
-    ### do linear analysis ###
+    try:
 
-    if NLAST_REMOVE is None:
-        # linear #
-        _, linear_extra, _, linear_error = LinearRegression_EstimateError(
-            ept[-NEXTRA:], etot[-NEXTRA:]
-        )
-        # weighted linear #
-        weighted_linear_extra, weighted_linear_error, slope, intercept = (
-            weighted_linear_fit_estimate_error(
-                ept[-NEXTRA:], etot[-NEXTRA:], False, True
-            )
-        )
-        # quad #
-        quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
-            ept[-NEXTRA:], etot[-NEXTRA:], False, False
-        )
-        # weighted quad #
-        weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
-            weighted_quadratic_fit_estimate_error(
-                ept[-NEXTRA:], etot[-NEXTRA:], False, True
-            )
-        )
+        ### do linear analysis ###
 
-    else:
-        # linear #
-        _, linear_extra, _, linear_error = LinearRegression_EstimateError(
-            ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
-            etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
-        )
-        # weighted linear #
-        weighted_linear_extra, weighted_linear_error, slope, intercept = (
-            weighted_linear_fit_estimate_error(
+        if NLAST_REMOVE is None:
+            # linear #
+            _, linear_extra, _, linear_error = LinearRegression_EstimateError(
+                ept[-NEXTRA:], etot[-NEXTRA:]
+            )
+            # weighted linear #
+            weighted_linear_extra, weighted_linear_error, slope, intercept = (
+                weighted_linear_fit_estimate_error(
+                    ept[-NEXTRA:], etot[-NEXTRA:], False, True
+                )
+            )
+            # quad #
+            quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
+                ept[-NEXTRA:], etot[-NEXTRA:], False, False
+            )
+            # weighted quad #
+            weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
+                weighted_quadratic_fit_estimate_error(
+                    ept[-NEXTRA:], etot[-NEXTRA:], False, True
+                )
+            )
+
+        else:
+            # linear #
+            _, linear_extra, _, linear_error = LinearRegression_EstimateError(
+                ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+            )
+            # weighted linear #
+            weighted_linear_extra, weighted_linear_error, slope, intercept = (
+                weighted_linear_fit_estimate_error(
+                    ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                    etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                    False,
+                    True,
+                )
+            )
+            # quad #
+            quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
                 ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
                 etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
                 False,
-                True,
-            )
-        )
-        # quad #
-        quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
-            ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
-            etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
-            False,
-            False,
-        )
-        # weighted quad #
-        weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
-            weighted_quadratic_fit_estimate_error(
-                ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
-                etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
                 False,
-                True,
             )
-        )
+            # weighted quad #
+            weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
+                weighted_quadratic_fit_estimate_error(
+                    ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                    etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                    False,
+                    True,
+                )
+            )
 
-    ### return res ###
+        ### return res ###
 
-    return {
-        "ept": ept,
-        "etot": etot,
-        "linear_extra": linear_extra,
-        "linear_error": linear_error,
-        "weighted_linear_extra": weighted_linear_extra,
-        "weighted_linear_error": weighted_linear_error,
-        "slope": slope,
-        "intercept": intercept,
-        "a": a,
-        "b": b,
-        "c": c,
-        "quadratic_extra": quadratic_extra,
-        "quadratic_error": quadratic_error,
-        "weighted_quadratic_extra": weighted_quadratic_extra,
-        "weighted_quadratic_error": weighted_quadratic_error,
-    }
+        return {
+            "ept": ept,
+            "etot": etot,
+            "linear_extra": linear_extra,
+            "linear_error": linear_error,
+            "weighted_linear_extra": weighted_linear_extra,
+            "weighted_linear_error": weighted_linear_error,
+            "slope": slope,
+            "intercept": intercept,
+            "a": a,
+            "b": b,
+            "c": c,
+            "quadratic_extra": quadratic_extra,
+            "quadratic_error": quadratic_error,
+            "weighted_quadratic_extra": weighted_quadratic_extra,
+            "weighted_quadratic_error": weighted_quadratic_error,
+        }
+
+    except Exception as e:
+        return {
+            "ept": ept,
+            "etot": etot,
+            "linear_extra": 0.0,
+            "linear_error": 0.0,
+            "weighted_linear_extra": 0.0,
+            "weighted_linear_error": 0.0,
+            "slope": 0.0,
+            "intercept": 0.0,
+            "a": 0.0,
+            "b": 0.0,
+            "c": 0.0,
+            "quadratic_extra": 0.0,
+            "quadratic_error": 0.0,
+            "weighted_quadratic_extra": 0.0,
+            "weighted_quadratic_error": 0.0,
+        }
 
 
 ######################################
