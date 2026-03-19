@@ -1,4 +1,5 @@
 from pyscf_util.Analyzer.iCIPT2.analyzer import *
+from tabulate import tabulate
 
 ############################################
 ## extract mrpt2/nevpt2 ##
@@ -196,6 +197,165 @@ def print_out_results(
 ############################################
 ## case II multi qmin
 ############################################
+
+############################################
+## FUll Driver for mr-enpt2/mr-nevpt2d
+############################################
+
+from pyscf_util.misc.picture import get_extra_res, draw_extra_pic
+
+def analysis_mrpt2(
+    ENPT2_RES,
+    MRENPT2_RES,
+    NEVPT2_RES,
+    TASK,
+    CMIN,
+    print_pic=False,
+    print_table=True,
+    NPT=5,
+    NLAST_REMOVE_LARGE=None,
+    NLAST_REMOVE_SMALL=None,
+):
+
+    # some global data #
+
+    subspace_order = [(0, 1), (0, 2), (1, 0), (1, 1), (2, 0)]
+    subspace_order_2_key = {
+        (0, 1): "r",
+        (0, 2): "rs",
+        (1, 0): "i",
+        (1, 1): "ir",
+        (2, 0): "ij",
+    }
+    subspace_order2 = ["ijr", "rsi", "ijrs"]
+    header = ["Cmin", "ept2", "r", "rs", "i", "ir", "ij", "ijr", "rsi", "ijrs"]
+    subspace_order_print = ["r", "rs", "i", "ir", "ij", "ijr", "rsi", "ijrs"]
+
+    for mole in TASK:
+        data_print = []
+        DATA_EXTRA = {
+            "i": {
+                "ept": [],
+                "etot": [],
+            },
+            "ij": {
+                "ept": [],
+                "etot": [],
+            },
+            "ir": {
+                "ept": [],
+                "etot": [],
+            },
+            "r": {
+                "ept": [],
+                "etot": [],
+            },
+            "rs": {
+                "ept": [],
+                "etot": [],
+            },
+            "ijr": {
+                "ept": [],
+                "etot": [],
+            },
+            "rsi": {
+                "ept": [],
+                "etot": [],
+            },
+            "ijrs": {
+                "ept": [],
+                "etot": [],
+            },
+        }
+        for cmin in CMIN:
+
+            # table res #
+
+            data = [cmin]
+            ept2 = ENPT2_RES[mole][cmin]["perturbation"]
+            data.append(ept2)
+
+            for key in subspace_order:
+                e2 = MRENPT2_RES[(mole, cmin)][key]
+                data.append(e2)
+
+                key2 = subspace_order_2_key[key]
+                DATA_EXTRA[key2]["ept"].append(ept2)
+                DATA_EXTRA[key2]["etot"].append(e2)
+
+            for key in subspace_order2:
+                e2 = NEVPT2_RES[(mole)]["pc-NEVPT2"][cmin][key]["e"]
+                data.append(e2)
+
+                DATA_EXTRA[key]["ept"].append(ept2)
+                DATA_EXTRA[key]["etot"].append(e2)
+
+            data_print.append(data)
+
+        # print(DATA_EXTRA)
+
+        DATA_PRINT2 = {}
+        DATA_PRINT3 = {}
+
+        data_large_linear = ["large-linear", "energy"]
+        data_large_linear_error = ["large-linear", "error"]
+        data_large_quadratic = ["large-quadratic", "energy"]
+        data_large_quadratic_error = ["large-quadratic", "error"]
+
+        data_small_linear = ["small-linear", "energy"]
+        data_small_linear_error = ["small-linear", "error"]
+        data_small_quadratic = ["small-quadratic", "energy"]
+        data_small_quadratic_error = ["small-quadratic", "error"]
+
+        for key in subspace_order_print:
+            DATA_PRINT2[key] = get_extra_res(
+                DATA_EXTRA[key]["ept"], DATA_EXTRA[key]["etot"], NPT, NLAST_REMOVE_SMALL
+            )
+            DATA_PRINT3[key] = get_extra_res(
+                DATA_EXTRA[key]["ept"], DATA_EXTRA[key]["etot"], NPT, NLAST_REMOVE_LARGE
+            )
+
+            data_large_linear.append(DATA_PRINT3[key]["linear_extra"])
+            data_large_linear_error.append(DATA_PRINT3[key]["linear_error"])
+            data_large_quadratic.append(DATA_PRINT3[key]["quadratic_extra"])
+            data_large_quadratic_error.append(DATA_PRINT3[key]["quadratic_error"])
+
+            data_small_linear.append(DATA_PRINT2[key]["linear_extra"])
+            data_small_linear_error.append(DATA_PRINT2[key]["linear_error"])
+            data_small_quadratic.append(DATA_PRINT2[key]["quadratic_extra"])
+            data_small_quadratic_error.append(DATA_PRINT2[key]["quadratic_error"])
+
+        data_print.append(data_large_linear)
+        data_print.append(data_large_linear_error)
+        data_print.append(data_large_quadratic)
+        data_print.append(data_large_quadratic_error)
+        data_print.append(data_small_linear)
+        data_print.append(data_small_linear_error)
+        data_print.append(data_small_quadratic)
+        data_print.append(data_small_quadratic_error)
+
+        # print #
+
+        if print_pic or print_table:
+            print(mole)
+
+        if print_table:
+            print(
+                tabulate(data_print, headers=header, tablefmt="grid", floatfmt="15.8f")
+            )
+
+        if print_pic:
+            print("extra with small cmin")
+            draw_extra_pic(DATA_PRINT2, 2, 4, subspace_order_print, 24, 9)
+            draw_extra_pic(
+                DATA_PRINT2, 2, 4, subspace_order_print, 24, 9, use_quadratic=True
+            )
+
+            print("extra with large cmin")
+            draw_extra_pic(DATA_PRINT3, 2, 4, subspace_order_print, 24, 9)
+            draw_extra_pic(
+                DATA_PRINT3, 2, 4, subspace_order_print, 24, 9, use_quadratic=True
+            )
 
 
 if __name__ == "__main__":
