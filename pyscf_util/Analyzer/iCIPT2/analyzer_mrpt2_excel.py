@@ -185,7 +185,7 @@ def analysis_mrpt2_2_excel(
 
     ws = wb.create_sheet(wb_title)
     # ws.title = wb_title
-    
+
     # some global data #
 
     # subspace_order = [(0, 1), (0, 2), (1, 0), (1, 1), (2, 0)]

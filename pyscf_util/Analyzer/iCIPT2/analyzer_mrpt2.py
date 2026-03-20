@@ -499,6 +499,111 @@ def analysis_mrpt2_2(
             )
 
 
+def extra_nevpt2s(
+    DataSet,
+    QMIN,
+    etot_keyname="etot",
+    NPT=5,
+    NLAST_REMOVE=None,
+    sum=False,
+    draw_pic=True,
+):
+
+    subspace_order = [(0, 1), (0, 2), (1, 0), (1, 1), (2, 0)]
+    subspace_order_2_key = {
+        (0, 1): "r",
+        (0, 2): "rs",
+        (1, 0): "i",
+        (1, 1): "ir",
+        (2, 0): "ij",
+    }
+
+    Res = {}
+    for key in subspace_order:
+        Ept = [DataSet[x][key]["ept"] for x in QMIN]
+        Etot = [DataSet[x][key][etot_keyname] for x in QMIN]
+
+        Res[key] = get_extra_res(Ept, Etot, NPT, NLAST_REMOVE)
+
+    if sum:
+        Ept = Res[(0, 1)]["ept"]
+        Etot = Res[(0, 1)]["etot"]
+        for loc in range(len(QMIN)):
+            for key in subspace_order[1:]:
+                Ept[loc] += Res[key]["ept"][loc]
+                Etot[loc] += Res[key]["etot"][loc]
+        Res = get_extra_res(Ept, Etot, NPT, NLAST_REMOVE)
+
+        if draw_pic:
+            DATA_DRAW = {}
+            DATA_DRAW["ALL"] = Res
+            draw_extra_pic(DATA_DRAW, 1, 1, None, 12, 9)
+            draw_extra_pic(DATA_DRAW, 1, 1, None, 12, 9, use_quadratic=True)
+    else:
+
+        if draw_pic:
+            DATA_DRAW = {}
+            for key in subspace_order:
+                DATA_DRAW[subspace_order_2_key[key]] = Res[key]
+            draw_extra_pic(DATA_DRAW, 2, 3, None, 16, 16)
+            draw_extra_pic(DATA_DRAW, 2, 3, None, 16, 16, use_quadratic=True)
+
+    return Res
+
+
+def collect_nevpt2s(
+    DataSet,
+    TASK,
+    CMIN,
+    QMIN,
+    etot_keyname="etot",
+    NPT=5,
+    NLAST_REMOVE=None,
+    sum=False,
+    draw_pic=False,
+):
+
+    LinearExtraRes = {}
+    LinearExtraErr = {}
+    QuadExtraRes = {}
+    QuadExtraErr = {}
+
+    subspace_order = [(0, 1), (0, 2), (1, 0), (1, 1), (2, 0)]
+
+    for mole in TASK:
+        for cmin in CMIN:
+            if draw_pic:
+                print(mole, cmin)
+            res = extra_nevpt2s(
+                DataSet[(mole, cmin)],
+                QMIN,
+                etot_keyname,
+                NPT,
+                NLAST_REMOVE,
+                sum,
+                draw_pic,
+            )
+            # print(res)
+            KEY = (mole, cmin)
+            if not sum:
+                LinearExtraRes[KEY] = {}
+                LinearExtraErr[KEY] = {}
+                QuadExtraRes[KEY] = {}
+                QuadExtraErr[KEY] = {}
+                for key in subspace_order:
+                    LinearExtraRes[KEY][key] = res[key]["weighted_linear_extra"]
+                    LinearExtraErr[KEY][key] = res[key]["weighted_linear_error"]
+                    QuadExtraRes[KEY][key] = res[key]["weighted_quadratic_extra"]
+                    QuadExtraErr[KEY][key] = res[key]["weighted_quadratic_error"]
+            else:
+                LinearExtraRes[KEY] = res["weighted_linear_extra"]
+                LinearExtraErr[KEY] = res["weighted_linear_error"]
+                QuadExtraRes[KEY] = res["weighted_quadratic_extra"]
+                QuadExtraErr[KEY] = res["weighted_quadratic_error"]
+
+    return LinearExtraRes, LinearExtraErr, QuadExtraRes, QuadExtraErr
+
+
 if __name__ == "__main__":
 
     filename = "mr_dyall.out"
