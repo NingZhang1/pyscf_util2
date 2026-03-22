@@ -53,6 +53,26 @@ from pyscf_util.Analyzer.iCIPT2.analyzer import *
 
 def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
 
+    if len(ept) == 1:
+
+        return {
+            "ept": ept,
+            "etot": etot,
+            "linear_extra": etot[-1],
+            "linear_error": 0.0,
+            "weighted_linear_extra": etot[-1],
+            "weighted_linear_error": 0.0,
+            "slope": None,
+            "intercept": None,
+            "a": None,
+            "b": None,
+            "c": None,
+            "quadratic_extra": etot[-1],
+            "quadratic_error": 0.0,
+            "weighted_quadratic_extra": etot[-1],
+            "weighted_quadratic_error": 0.0,
+        }
+
     if NLAST_REMOVE == 0:
         NLAST_REMOVE = None
 
