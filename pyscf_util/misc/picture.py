@@ -53,6 +53,9 @@ from pyscf_util.Analyzer.iCIPT2.analyzer import *
 
 def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
 
+    if NLAST_REMOVE == 0:
+        NLAST_REMOVE = None
+
     try:
 
         ### do linear analysis ###
@@ -132,6 +135,7 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
         }
 
     except Exception as e:
+        print(e)
         return {
             "ept": ept,
             "etot": etot,

@@ -17,6 +17,8 @@ def analysis_mrpt2_excel(
     NPT=5,
     NLAST_REMOVE_LARGE=None,
     NLAST_REMOVE_SMALL=None,
+    CMIN_MRENPT2=None,
+    NPT_MRENTP2=None,
 ):
 
     ws = wb.create_sheet(wb_title)
@@ -35,6 +37,16 @@ def analysis_mrpt2_excel(
     subspace_order2 = ["ijr", "rsi", "ijrs"]
     header = ["Cmin", "ept2", "r", "rs", "i", "ir", "ij", "ijr", "rsi", "ijrs"]
     subspace_order_print = ["r", "rs", "i", "ir", "ij", "ijr", "rsi", "ijrs"]
+
+    if CMIN_MRENPT2 is None:
+        CMIN_MRENPT2 = CMIN
+    if NPT_MRENTP2 is None:
+        NPT_MRENTP2 = NPT
+
+    for i in range(len(CMIN_MRENPT2)):
+        if abs(CMIN_MRENPT2[i] - CMIN[i]) > 1e-10:
+            exit(1)
+    len_cmin_mrenpt2 = len(CMIN_MRENPT2)
 
     for mole in TASK:
         data_print = []
@@ -72,7 +84,9 @@ def analysis_mrpt2_excel(
                 "etot": [],
             },
         }
-        for cmin in CMIN:
+
+        # for cmin in CMIN:
+        for cmin in CMIN_MRENPT2:
 
             # table res #
 
@@ -87,6 +101,29 @@ def analysis_mrpt2_excel(
                 key2 = subspace_order_2_key[key]
                 DATA_EXTRA[key2]["ept"].append(ept2)
                 DATA_EXTRA[key2]["etot"].append(e2)
+
+            for key in subspace_order2:
+                e2 = NEVPT2_RES[(mole)]["pc-NEVPT2"][cmin][key]["e"]
+                data.append(e2)
+
+                DATA_EXTRA[key]["ept"].append(ept2)
+                DATA_EXTRA[key]["etot"].append(e2)
+
+            data_print.append(data)
+
+        for cmin in CMIN[len_cmin_mrenpt2:]:
+
+            data = [cmin]
+            ept2 = ENPT2_RES[mole][cmin]["perturbation"]
+            data.append(ept2)
+
+            for key in subspace_order:
+                # e2 = MRENPT2_RES[(mole, cmin)][key]
+                data.append(0.0)
+
+                # key2 = subspace_order_2_key[key]
+                # DATA_EXTRA[key2]["ept"].append(ept2)
+                # DATA_EXTRA[key2]["etot"].append(e2)
 
             for key in subspace_order2:
                 e2 = NEVPT2_RES[(mole)]["pc-NEVPT2"][cmin][key]["e"]
@@ -113,12 +150,32 @@ def analysis_mrpt2_excel(
         data_small_quadratic_error = ["small-quadratic", "error"]
 
         for key in subspace_order_print:
-            DATA_PRINT2[key] = get_extra_res(
-                DATA_EXTRA[key]["ept"], DATA_EXTRA[key]["etot"], NPT, NLAST_REMOVE_SMALL
-            )
-            DATA_PRINT3[key] = get_extra_res(
-                DATA_EXTRA[key]["ept"], DATA_EXTRA[key]["etot"], NPT, NLAST_REMOVE_LARGE
-            )
+            if key in ["r", "rs", "i", "ir", "ij"]:
+                DATA_PRINT2[key] = get_extra_res(
+                    DATA_EXTRA[key]["ept"],
+                    DATA_EXTRA[key]["etot"],
+                    NPT_MRENTP2,
+                    NLAST_REMOVE_SMALL,
+                )
+                DATA_PRINT3[key] = get_extra_res(
+                    DATA_EXTRA[key]["ept"],
+                    DATA_EXTRA[key]["etot"],
+                    NPT_MRENTP2,
+                    NLAST_REMOVE_LARGE,
+                )
+            else:
+                DATA_PRINT2[key] = get_extra_res(
+                    DATA_EXTRA[key]["ept"],
+                    DATA_EXTRA[key]["etot"],
+                    NPT,
+                    NLAST_REMOVE_SMALL,
+                )
+                DATA_PRINT3[key] = get_extra_res(
+                    DATA_EXTRA[key]["ept"],
+                    DATA_EXTRA[key]["etot"],
+                    NPT,
+                    NLAST_REMOVE_LARGE,
+                )
 
             data_large_linear.append(DATA_PRINT3[key]["linear_extra"])
             data_large_linear_error.append(DATA_PRINT3[key]["linear_error"])
@@ -181,6 +238,8 @@ def analysis_mrpt2_2_excel(
     NPT=5,
     NLAST_REMOVE_LARGE=None,
     NLAST_REMOVE_SMALL=None,
+    CMIN_MRENPT2=None,
+    NPT_MRENTP2=None,
 ):
 
     ws = wb.create_sheet(wb_title)
@@ -199,6 +258,16 @@ def analysis_mrpt2_2_excel(
     subspace_order2 = ["ijr", "rsi", "ijrs"]
     header = ["Cmin", "ept2", "space", "ijr", "rsi", "ijrs"]
     subspace_order_print = ["space", "ijr", "rsi", "ijrs"]
+
+    if CMIN_MRENPT2 is None:
+        CMIN_MRENPT2 = CMIN
+    if NPT_MRENTP2 is None:
+        NPT_MRENTP2 = NPT
+
+    for i in range(len(CMIN_MRENPT2)):
+        if abs(CMIN_MRENPT2[i] - CMIN[i]) > 1e-10:
+            exit(1)
+    len_cmin_mrenpt2 = len(CMIN_MRENPT2)
 
     for mole in TASK:
         data_print = []
@@ -220,7 +289,9 @@ def analysis_mrpt2_2_excel(
                 "etot": [],
             },
         }
-        for cmin in CMIN:
+        # for cmin in CMIN:
+
+        for cmin in CMIN_MRENPT2:
 
             # table res #
 
@@ -235,6 +306,23 @@ def analysis_mrpt2_2_excel(
             # key2 = subspace_order_2_key[key]
             DATA_EXTRA["space"]["ept"].append(ept2)
             DATA_EXTRA["space"]["etot"].append(e2)
+
+            for key in subspace_order2:
+                e2 = NEVPT2_RES[(mole)]["pc-NEVPT2"][cmin][key]["e"]
+                data.append(e2)
+
+                DATA_EXTRA[key]["ept"].append(ept2)
+                DATA_EXTRA[key]["etot"].append(e2)
+
+            data_print.append(data)
+
+        for cmin in CMIN[len_cmin_mrenpt2:]:
+
+            data = [cmin]
+            ept2 = ENPT2_RES[mole][cmin]["perturbation"]
+            data.append(ept2)
+
+            data.append(0.0)
 
             for key in subspace_order2:
                 e2 = NEVPT2_RES[(mole)]["pc-NEVPT2"][cmin][key]["e"]
@@ -261,12 +349,32 @@ def analysis_mrpt2_2_excel(
         data_small_quadratic_error = ["small-quadratic", "error"]
 
         for key in subspace_order_print:
-            DATA_PRINT2[key] = get_extra_res(
-                DATA_EXTRA[key]["ept"], DATA_EXTRA[key]["etot"], NPT, NLAST_REMOVE_SMALL
-            )
-            DATA_PRINT3[key] = get_extra_res(
-                DATA_EXTRA[key]["ept"], DATA_EXTRA[key]["etot"], NPT, NLAST_REMOVE_LARGE
-            )
+            if key == "space":
+                DATA_PRINT2[key] = get_extra_res(
+                    DATA_EXTRA[key]["ept"],
+                    DATA_EXTRA[key]["etot"],
+                    NPT_MRENTP2,
+                    NLAST_REMOVE_SMALL,
+                )
+                DATA_PRINT3[key] = get_extra_res(
+                    DATA_EXTRA[key]["ept"],
+                    DATA_EXTRA[key]["etot"],
+                    NPT_MRENTP2,
+                    NLAST_REMOVE_LARGE,
+                )
+            else:
+                DATA_PRINT2[key] = get_extra_res(
+                    DATA_EXTRA[key]["ept"],
+                    DATA_EXTRA[key]["etot"],
+                    NPT,
+                    NLAST_REMOVE_SMALL,
+                )
+                DATA_PRINT3[key] = get_extra_res(
+                    DATA_EXTRA[key]["ept"],
+                    DATA_EXTRA[key]["etot"],
+                    NPT,
+                    NLAST_REMOVE_LARGE,
+                )
 
             data_large_linear.append(DATA_PRINT3[key]["linear_extra"])
             data_large_linear_error.append(DATA_PRINT3[key]["linear_error"])
@@ -290,6 +398,7 @@ def analysis_mrpt2_2_excel(
 
         ws.append(header)
         for x in data_print:
+            # print(x)
             ws.append(x)
 
         # print #
