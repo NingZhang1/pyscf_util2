@@ -374,15 +374,15 @@ def analysis_mrpt2(
                     NLAST_REMOVE_LARGE,
                 )
 
-            data_large_linear.append(DATA_PRINT3[key]["linear_extra"])
-            data_large_linear_error.append(DATA_PRINT3[key]["linear_error"])
-            data_large_quadratic.append(DATA_PRINT3[key]["quadratic_extra"])
-            data_large_quadratic_error.append(DATA_PRINT3[key]["quadratic_error"])
+            data_large_linear.append(DATA_PRINT3[key]["weighted_linear_extra"])
+            data_large_linear_error.append(DATA_PRINT3[key]["weighted_linear_error"])
+            data_large_quadratic.append(DATA_PRINT3[key]["weighted_quadratic_extra"])
+            data_large_quadratic_error.append(DATA_PRINT3[key]["weighted_quadratic_error"])
 
-            data_small_linear.append(DATA_PRINT2[key]["linear_extra"])
-            data_small_linear_error.append(DATA_PRINT2[key]["linear_error"])
-            data_small_quadratic.append(DATA_PRINT2[key]["quadratic_extra"])
-            data_small_quadratic_error.append(DATA_PRINT2[key]["quadratic_error"])
+            data_small_linear.append(DATA_PRINT2[key]["weighted_linear_extra"])
+            data_small_linear_error.append(DATA_PRINT2[key]["weighted_linear_error"])
+            data_small_quadratic.append(DATA_PRINT2[key]["weighted_quadratic_extra"])
+            data_small_quadratic_error.append(DATA_PRINT2[key]["weighted_quadratic_error"])
 
         data_print.append(data_large_linear)
         data_print.append(data_large_quadratic)
@@ -563,15 +563,15 @@ def analysis_mrpt2_2(
                     NLAST_REMOVE_LARGE,
                 )
 
-            data_large_linear.append(DATA_PRINT3[key]["linear_extra"])
-            data_large_linear_error.append(DATA_PRINT3[key]["linear_error"])
-            data_large_quadratic.append(DATA_PRINT3[key]["quadratic_extra"])
-            data_large_quadratic_error.append(DATA_PRINT3[key]["quadratic_error"])
+            data_large_linear.append(DATA_PRINT3[key]["weighted_linear_extra"])
+            data_large_linear_error.append(DATA_PRINT3[key]["weighted_linear_error"])
+            data_large_quadratic.append(DATA_PRINT3[key]["weighted_quadratic_extra"])
+            data_large_quadratic_error.append(DATA_PRINT3[key]["weighted_quadratic_error"])
 
-            data_small_linear.append(DATA_PRINT2[key]["linear_extra"])
-            data_small_linear_error.append(DATA_PRINT2[key]["linear_error"])
-            data_small_quadratic.append(DATA_PRINT2[key]["quadratic_extra"])
-            data_small_quadratic_error.append(DATA_PRINT2[key]["quadratic_error"])
+            data_small_linear.append(DATA_PRINT2[key]["weighted_linear_extra"])
+            data_small_linear_error.append(DATA_PRINT2[key]["weighted_linear_error"])
+            data_small_quadratic.append(DATA_PRINT2[key]["weighted_quadratic_extra"])
+            data_small_quadratic_error.append(DATA_PRINT2[key]["weighted_quadratic_error"])
 
         data_print.append(data_large_linear)
         data_print.append(data_large_quadratic)
