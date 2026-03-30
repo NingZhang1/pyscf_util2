@@ -3,6 +3,7 @@ from urllib import robotparser
 # import seaborn
 # import pandas
 import matplotlib.pyplot as plt
+import os, sys
 
 # import numpy
 
@@ -71,6 +72,12 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
             "quadratic_error": 0.0,
             "weighted_quadratic_extra": etot[-1],
             "weighted_quadratic_error": 0.0,
+            # pade #,
+            "pade_a": None,
+            "pade_b": None,
+            "pade_c": None,
+            "weighted_pade_extra": etot[-1],
+            "weighted_pade_error": 0.0,
         }
 
     if NLAST_REMOVE == 0:
@@ -98,6 +105,12 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
             # weighted quad #
             weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
                 weighted_quadratic_fit_estimate_error(
+                    ept[-NEXTRA:], etot[-NEXTRA:], False, True
+                )
+            )
+            # pade #
+            pade_extra, pade_error, pade_a, pade_b, pade_c = (
+                weighted_pade_fit_estimate_error(
                     ept[-NEXTRA:], etot[-NEXTRA:], False, True
                 )
             )
@@ -133,6 +146,15 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
                     True,
                 )
             )
+            # pade #
+            pade_extra, pade_error, pade_a, pade_b, pade_c = (
+                weighted_pade_fit_estimate_error(
+                    ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                    etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                    False,
+                    True,
+                )
+            )
 
         ### return res ###
 
@@ -152,6 +174,12 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
             "quadratic_error": quadratic_error,
             "weighted_quadratic_extra": weighted_quadratic_extra,
             "weighted_quadratic_error": weighted_quadratic_error,
+            # pade #
+            "pade_a": pade_a,
+            "pade_b": pade_b,
+            "pade_c": pade_c,
+            "weighted_pade_extra": pade_extra,
+            "weighted_pade_error": pade_error,
         }
 
     except Exception as e:
@@ -172,6 +200,12 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
             "quadratic_error": 0.0,
             "weighted_quadratic_extra": 0.0,
             "weighted_quadratic_error": 0.0,
+            # pade #
+            "pade_a": 0.0,
+            "pade_b": 0.0,
+            "pade_c": 0.0,
+            "weighted_pade_extra": 0.0,
+            "weighted_pade_error": 0.0,
         }
 
 
@@ -193,6 +227,7 @@ def draw_extra_pic(
     quadratic_fit_label=f"Weighted Quadratic Fit",
     add_err_bar=True,
     use_quadratic=False,
+    use_pade=False,
     shown=True,
     save_fig=False,
     fig_path=None,
@@ -294,6 +329,39 @@ def draw_extra_pic(
                 linewidth=2,
                 label=quadratic_fit_label,
                 zorder=4,
+            )
+
+        if use_pade:
+
+            pade_a = data["pade_a"]
+            pade_b = data["pade_b"]
+            pade_c = data["pade_c"]
+            weighted_pade_extra = data["weighted_pade_extra"]
+            weighted_pade_error = data["weighted_pade_error"]
+
+            x_fit = np.linspace(min(ept), 0.0, 1000)
+            y_fit = (pade_a * x_fit + pade_b) / (pade_c * x_fit + 1)
+
+            ax.plot(
+                x_fit,
+                y_fit,
+                "--",
+                color=colors[idx % len(colors)],
+                linewidth=2,
+                label="Weighted Pade Fit",
+                zorder=4,
+            )
+
+            # 标记外推点（x=0）
+
+            ax.scatter(
+                0,
+                weighted_pade_extra,
+                color="black",
+                s=100,
+                marker="*",
+                label=f"Pade Extrapolated: {weighted_pade_extra:.6f} ± {weighted_pade_error:.6f}",
+                zorder=6,
             )
 
         # 标记外推点（x=0）

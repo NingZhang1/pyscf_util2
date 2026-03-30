@@ -278,6 +278,49 @@ def weighted_quadratic_fit_estimate_error(x, y, print_verbose=False, get_curve=F
         return c, c_error
 
 
+# pade approx #
+
+
+def weighted_pade_fit_estimate_error(x, y, print_verbose=False, get_curve=False):
+
+    # Define the form of the function we want to fit
+    def func(x, a, b, c):
+        return (a * x + b) / (c * x + 1)
+
+    x = np.asarray(x)
+    y = np.asarray(y)
+
+    # do linear fit to get initial guess #
+
+    popt, pcov = curve_fit(
+        lambda x, a, b: a * x + b, x, y, p0=[(y[-1] - y[-2]) / (x[-1] - x[-2]), y[-1]]
+    )
+
+    # Use curve_fit to fit the function to our data. popt will contain the fitted parameters
+    popt, pcov = curve_fit(
+        func,
+        x,
+        y,
+        sigma=abs(x),
+        p0=[popt[0], popt[1], 0.0],
+    )
+
+    b = popt[1]
+    b_error = np.sqrt(pcov[1][1])
+
+    if print_verbose:
+        print("Pade Regression : \n")
+        print("a                 : %16.8e\n" % popt[0])
+        print("b                 : %16.8e\n" % popt[1])
+        print("c                 : %16.8e\n" % popt[2])
+        print("b_error           : %16.8e\n" % b_error)
+
+    if get_curve:
+        return b, b_error, popt[0], popt[1], popt[2]
+    else:
+        return b, b_error
+
+
 def LinearRegression_EstimateError(x, y, print_verbose=False):
 
     if len(x) != len(y):

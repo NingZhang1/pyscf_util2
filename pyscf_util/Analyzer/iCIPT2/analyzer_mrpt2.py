@@ -412,13 +412,27 @@ def analysis_mrpt2(
             print("extra with small cmin")
             draw_extra_pic(DATA_PRINT2, 2, 4, subspace_order_print, 24, 9)
             draw_extra_pic(
-                DATA_PRINT2, 2, 4, subspace_order_print, 24, 9, use_quadratic=True
+                DATA_PRINT2,
+                2,
+                4,
+                subspace_order_print,
+                24,
+                9,
+                use_quadratic=True,
+                use_pade=True,
             )
 
             print("extra with large cmin")
             draw_extra_pic(DATA_PRINT3, 2, 4, subspace_order_print, 24, 9)
             draw_extra_pic(
-                DATA_PRINT3, 2, 4, subspace_order_print, 24, 9, use_quadratic=True
+                DATA_PRINT3,
+                2,
+                4,
+                subspace_order_print,
+                24,
+                9,
+                use_quadratic=True,
+                use_pade=True,
             )
 
 
@@ -605,13 +619,27 @@ def analysis_mrpt2_2(
             print("extra with small cmin")
             draw_extra_pic(DATA_PRINT2, 2, 2, subspace_order_print, 12, 9)
             draw_extra_pic(
-                DATA_PRINT2, 2, 2, subspace_order_print, 12, 9, use_quadratic=True
+                DATA_PRINT2,
+                2,
+                2,
+                subspace_order_print,
+                12,
+                9,
+                use_quadratic=True,
+                use_pade=True,
             )
 
             print("extra with large cmin")
             draw_extra_pic(DATA_PRINT3, 2, 2, subspace_order_print, 12, 9)
             draw_extra_pic(
-                DATA_PRINT3, 2, 2, subspace_order_print, 12, 9, use_quadratic=True
+                DATA_PRINT3,
+                2,
+                2,
+                subspace_order_print,
+                12,
+                9,
+                use_quadratic=True,
+                use_pade=True,
             )
 
 
