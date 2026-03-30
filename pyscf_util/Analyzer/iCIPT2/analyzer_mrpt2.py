@@ -340,11 +340,15 @@ def analysis_mrpt2(
         data_large_linear_error = ["large-linear", "error"]
         data_large_quadratic = ["large-quadratic", "energy"]
         data_large_quadratic_error = ["large-quadratic", "error"]
+        data_large_pade = ["large-pade", "energy"]
+        data_large_pade_error = ["large-pade", "error"]
 
         data_small_linear = ["small-linear", "energy"]
         data_small_linear_error = ["small-linear", "error"]
         data_small_quadratic = ["small-quadratic", "energy"]
         data_small_quadratic_error = ["small-quadratic", "error"]
+        data_small_pade = ["small-pade", "energy"]
+        data_small_pade_error = ["small-pade", "error"]
 
         for key in subspace_order_print:
             if key in ["r", "rs", "i", "ir", "ij"]:
@@ -388,15 +392,24 @@ def analysis_mrpt2(
                 DATA_PRINT2[key]["weighted_quadratic_error"]
             )
 
+            data_large_pade.append(DATA_PRINT3[key]["weighted_pade_extra"])
+            data_large_pade_error.append(DATA_PRINT3[key]["weighted_pade_error"])
+            data_small_pade.append(DATA_PRINT2[key]["weighted_pade_extra"])
+            data_small_pade_error.append(DATA_PRINT2[key]["weighted_pade_error"])
+
         data_print.append(data_large_linear)
         data_print.append(data_large_quadratic)
+        data_print.append(data_large_pade)
         data_print.append(data_small_linear)
         data_print.append(data_small_quadratic)
+        data_print.append(data_small_pade)
 
         data_print.append(data_large_linear_error)
         data_print.append(data_large_quadratic_error)
+        data_print.append(data_large_pade_error)
         data_print.append(data_small_linear_error)
         data_print.append(data_small_quadratic_error)
+        data_print.append(data_small_pade_error)
 
         # print #
 
@@ -419,6 +432,17 @@ def analysis_mrpt2(
                 24,
                 9,
                 use_quadratic=True,
+                # use_pade=True,
+            )
+
+            draw_extra_pic(
+                DATA_PRINT2,
+                2,
+                4,
+                subspace_order_print,
+                24,
+                9,
+                # use_quadratic=True,
                 use_pade=True,
             )
 
@@ -432,6 +456,16 @@ def analysis_mrpt2(
                 24,
                 9,
                 use_quadratic=True,
+                # use_pade=True,
+            )
+            draw_extra_pic(
+                DATA_PRINT3,
+                2,
+                4,
+                subspace_order_print,
+                24,
+                9,
+                # use_quadratic=True,
                 use_pade=True,
             )
 
@@ -547,14 +581,18 @@ def analysis_mrpt2_2(
         data_large_linear_error = ["large-linear", "error"]
         data_large_quadratic = ["large-quadratic", "energy"]
         data_large_quadratic_error = ["large-quadratic", "error"]
+        data_large_pade = ["large-pade", "energy"]
+        data_large_pade_error = ["large-pade", "error"]
 
         data_small_linear = ["small-linear", "energy"]
         data_small_linear_error = ["small-linear", "error"]
         data_small_quadratic = ["small-quadratic", "energy"]
         data_small_quadratic_error = ["small-quadratic", "error"]
+        data_small_pade = ["small-pade", "energy"]
+        data_small_pade_error = ["small-pade", "error"]
 
         for key in subspace_order_print:
-            if key is "space":
+            if key == "space":
                 DATA_PRINT2[key] = get_extra_res(
                     DATA_EXTRA[key]["ept"],
                     DATA_EXTRA[key]["etot"],
@@ -595,15 +633,24 @@ def analysis_mrpt2_2(
                 DATA_PRINT2[key]["weighted_quadratic_error"]
             )
 
+            data_large_pade.append(DATA_PRINT3[key]["weighted_pade_extra"])
+            data_large_pade_error.append(DATA_PRINT3[key]["weighted_pade_error"])
+            data_small_pade.append(DATA_PRINT2[key]["weighted_pade_extra"])
+            data_small_pade_error.append(DATA_PRINT2[key]["weighted_pade_error"])
+
         data_print.append(data_large_linear)
         data_print.append(data_large_quadratic)
+        data_print.append(data_large_pade)
         data_print.append(data_small_linear)
         data_print.append(data_small_quadratic)
+        data_print.append(data_small_pade)
 
         data_print.append(data_large_linear_error)
         data_print.append(data_large_quadratic_error)
+        data_print.append(data_large_pade_error)
         data_print.append(data_small_linear_error)
         data_print.append(data_small_quadratic_error)
+        data_print.append(data_small_pade_error)
 
         # print #
 
@@ -626,6 +673,16 @@ def analysis_mrpt2_2(
                 12,
                 9,
                 use_quadratic=True,
+                # use_pade=True,
+            )
+            draw_extra_pic(
+                DATA_PRINT2,
+                2,
+                2,
+                subspace_order_print,
+                12,
+                9,
+                # use_quadratic=True,
                 use_pade=True,
             )
 
@@ -639,6 +696,16 @@ def analysis_mrpt2_2(
                 12,
                 9,
                 use_quadratic=True,
+                # use_pade=True,
+            )
+            draw_extra_pic(
+                DATA_PRINT3,
+                2,
+                2,
+                subspace_order_print,
+                12,
+                9,
+                # use_quadratic=True,
                 use_pade=True,
             )
 
@@ -688,6 +755,7 @@ def extra_nevpt2s(
             DATA_DRAW["ALL"] = Res
             draw_extra_pic(DATA_DRAW, 1, 1, None, 12, 9)
             draw_extra_pic(DATA_DRAW, 1, 1, None, 12, 9, use_quadratic=True)
+            draw_extra_pic(DATA_DRAW, 1, 1, None, 12, 9, use_pade=True)
     else:
 
         if draw_pic:
@@ -696,6 +764,7 @@ def extra_nevpt2s(
                 DATA_DRAW[subspace_order_2_key[key]] = Res[key]
             draw_extra_pic(DATA_DRAW, 2, 3, None, 16, 16)
             draw_extra_pic(DATA_DRAW, 2, 3, None, 16, 16, use_quadratic=True)
+            draw_extra_pic(DATA_DRAW, 2, 3, None, 16, 16, use_pade=True)
 
     return Res
 
@@ -716,6 +785,8 @@ def collect_nevpt2s(
     LinearExtraErr = {}
     QuadExtraRes = {}
     QuadExtraErr = {}
+    PadeExtraRes = {}
+    PadeExtraErr = {}
 
     subspace_order = [(0, 1), (0, 2), (1, 0), (1, 1), (2, 0)]
 
@@ -740,18 +811,24 @@ def collect_nevpt2s(
                 LinearExtraErr[KEY] = {}
                 QuadExtraRes[KEY] = {}
                 QuadExtraErr[KEY] = {}
+                PadeExtraRes[KEY] = {}
+                PadeExtraErr[KEY] = {}
                 for key in subspace_order:
                     LinearExtraRes[KEY][key] = res[key]["weighted_linear_extra"]
                     LinearExtraErr[KEY][key] = res[key]["weighted_linear_error"]
                     QuadExtraRes[KEY][key] = res[key]["weighted_quadratic_extra"]
                     QuadExtraErr[KEY][key] = res[key]["weighted_quadratic_error"]
+                    PadeExtraRes[KEY][key] = res[key]["weighted_pade_extra"]
+                    PadeExtraErr[KEY][key] = res[key]["weighted_pade_error"]
             else:
                 LinearExtraRes[KEY] = res["weighted_linear_extra"]
                 LinearExtraErr[KEY] = res["weighted_linear_error"]
                 QuadExtraRes[KEY] = res["weighted_quadratic_extra"]
                 QuadExtraErr[KEY] = res["weighted_quadratic_error"]
+                PadeExtraRes[KEY] = res["weighted_pade_extra"]
+                PadeExtraErr[KEY] = res["weighted_pade_error"]
 
-    return LinearExtraRes, LinearExtraErr, QuadExtraRes, QuadExtraErr
+    return LinearExtraRes, LinearExtraErr, QuadExtraRes, QuadExtraErr, PadeExtraRes, PadeExtraErr
 
 
 if __name__ == "__main__":

@@ -143,11 +143,15 @@ def analysis_mrpt2_excel(
         data_large_linear_error = ["large-linear", "error"]
         data_large_quadratic = ["large-quadratic", "energy"]
         data_large_quadratic_error = ["large-quadratic", "error"]
+        data_large_pade = ["large-pade", "energy"]
+        data_large_pade_error = ["large-pade", "error"]
 
         data_small_linear = ["small-linear", "energy"]
         data_small_linear_error = ["small-linear", "error"]
         data_small_quadratic = ["small-quadratic", "energy"]
         data_small_quadratic_error = ["small-quadratic", "error"]
+        data_small_pade = ["small-pade", "energy"]
+        data_small_pade_error = ["small-pade", "error"]
 
         for key in subspace_order_print:
             if key in ["r", "rs", "i", "ir", "ij"]:
@@ -191,15 +195,24 @@ def analysis_mrpt2_excel(
                 DATA_PRINT2[key]["weighted_quadratic_error"]
             )
 
+            data_large_pade.append(DATA_PRINT3[key]["weighted_pade_extra"])
+            data_large_pade_error.append(DATA_PRINT3[key]["weighted_pade_error"])
+            data_small_pade.append(DATA_PRINT2[key]["weighted_pade_extra"])
+            data_small_pade_error.append(DATA_PRINT2[key]["weighted_pade_error"])
+
         data_print.append(data_large_linear)
         data_print.append(data_large_quadratic)
+        data_print.append(data_large_pade)
         data_print.append(data_small_linear)
         data_print.append(data_small_quadratic)
+        data_print.append(data_small_pade)
 
         data_print.append(data_large_linear_error)
         data_print.append(data_large_quadratic_error)
+        data_print.append(data_large_pade_error)
         data_print.append(data_small_linear_error)
         data_print.append(data_small_quadratic_error)
+        data_print.append(data_small_pade_error)
 
         ws.append(header)
         for x in data_print:
@@ -221,11 +234,17 @@ def analysis_mrpt2_excel(
             draw_extra_pic(
                 DATA_PRINT2, 2, 4, subspace_order_print, 24, 9, use_quadratic=True
             )
+            draw_extra_pic(
+                DATA_PRINT2, 2, 4, subspace_order_print, 24, 9, use_pade=True
+            )
 
             print("extra with large cmin")
             draw_extra_pic(DATA_PRINT3, 2, 4, subspace_order_print, 24, 9)
             draw_extra_pic(
                 DATA_PRINT3, 2, 4, subspace_order_print, 24, 9, use_quadratic=True
+            )
+            draw_extra_pic(
+                DATA_PRINT3, 2, 4, subspace_order_print, 24, 9, use_pade=True
             )
 
 
@@ -346,11 +365,15 @@ def analysis_mrpt2_2_excel(
         data_large_linear_error = ["large-linear", "error"]
         data_large_quadratic = ["large-quadratic", "energy"]
         data_large_quadratic_error = ["large-quadratic", "error"]
+        data_large_pade = ["large-pade", "energy"]
+        data_large_pade_error = ["large-pade", "error"]
 
         data_small_linear = ["small-linear", "energy"]
         data_small_linear_error = ["small-linear", "error"]
         data_small_quadratic = ["small-quadratic", "energy"]
         data_small_quadratic_error = ["small-quadratic", "error"]
+        data_small_pade = ["small-pade", "energy"]
+        data_small_pade_error = ["small-pade", "error"]
 
         for key in subspace_order_print:
             if key == "space":
@@ -394,15 +417,24 @@ def analysis_mrpt2_2_excel(
                 DATA_PRINT2[key]["weighted_quadratic_error"]
             )
 
+            data_large_pade.append(DATA_PRINT3[key]["weighted_pade_extra"])
+            data_large_pade_error.append(DATA_PRINT3[key]["weighted_pade_error"])
+            data_small_pade.append(DATA_PRINT2[key]["weighted_pade_extra"])
+            data_small_pade_error.append(DATA_PRINT2[key]["weighted_pade_error"])
+
         data_print.append(data_large_linear)
         data_print.append(data_large_quadratic)
+        data_print.append(data_large_pade)
         data_print.append(data_small_linear)
         data_print.append(data_small_quadratic)
+        data_print.append(data_small_pade)
 
         data_print.append(data_large_linear_error)
         data_print.append(data_large_quadratic_error)
+        data_print.append(data_large_pade_error)
         data_print.append(data_small_linear_error)
         data_print.append(data_small_quadratic_error)
+        data_print.append(data_small_pade_error)
 
         ws.append(header)
         for x in data_print:
@@ -425,9 +457,15 @@ def analysis_mrpt2_2_excel(
             draw_extra_pic(
                 DATA_PRINT2, 2, 2, subspace_order_print, 12, 9, use_quadratic=True
             )
+            draw_extra_pic(
+                DATA_PRINT2, 2, 2, subspace_order_print, 12, 9, use_pade=True
+            )
 
             print("extra with large cmin")
             draw_extra_pic(DATA_PRINT3, 2, 2, subspace_order_print, 12, 9)
             draw_extra_pic(
                 DATA_PRINT3, 2, 2, subspace_order_print, 12, 9, use_quadratic=True
+            )
+            draw_extra_pic(
+                DATA_PRINT3, 2, 2, subspace_order_print, 12, 9, use_pade=True
             )

@@ -338,6 +338,10 @@ def draw_extra_pic(
             pade_c = data["pade_c"]
             weighted_pade_extra = data["weighted_pade_extra"]
             weighted_pade_error = data["weighted_pade_error"]
+            
+            if not use_quadratic:
+                weighted_extra = data["weighted_linear_extra"]
+                weighted_error = data["weighted_linear_error"]
 
             x_fit = np.linspace(min(ept), 0.0, 1000)
             y_fit = (pade_a * x_fit + pade_b) / (pade_c * x_fit + 1)
