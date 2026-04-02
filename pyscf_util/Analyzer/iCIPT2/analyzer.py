@@ -175,6 +175,57 @@ def extract_icipt2_data_from_file3(file_path: str):
     return extracted_data
 
 
+def extract_icipt2_data_from_file4(file_path: str):
+    # 用于存储所有解析出的 iCIPT2_Data 对象
+    extracted_data = []
+
+    # 正则表达式：完整行（7个字段）
+    pattern_full = re.compile(
+        r"^\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*([-+]?\d*\.\d+)\s*\|\s*([-+]?\d*\.\d+)\s*\|\s*([-+]?\d*\.\d+)"
+    )
+    # 正则表达式：部分行（仅 evar, ept, etot）
+    pattern_partial = re.compile(
+        r"^\s*\|\s*\|\s*\|\s*\|\s*([-+]?\d*\.\d+)\s*\|\s*([-+]?\d*\.\d+)\s*\|\s*([-+]?\d*\.\d+)"
+    )
+
+    # 当前上下文（用于部分行继承）
+    current_ncfg = None
+    current_ncsf = None
+
+    with open(file_path, "r") as file:
+        for line in file:
+            line = line.rstrip()
+            # 尝试匹配完整行
+            full_match = pattern_full.match(line)
+            if full_match:
+                # 更新上下文
+                current_ncfg = int(full_match.group(3))
+                current_ncsf = int(full_match.group(4))
+                data = iCIPT2_Data(
+                    ncfg=current_ncfg,
+                    ncsf=current_ncsf,
+                    evar=float(full_match.group(5)),
+                    ept=float(full_match.group(6)),
+                    etot=float(full_match.group(7)),
+                )
+                extracted_data.append(data)
+                continue
+
+            # 尝试匹配部分行
+            partial_match = pattern_partial.match(line)
+            if partial_match and current_ncfg is not None and current_ncsf is not None:
+                data = iCIPT2_Data(
+                    ncfg=current_ncfg,
+                    ncsf=current_ncsf,
+                    evar=float(partial_match.group(1)),
+                    ept=float(partial_match.group(2)),
+                    etot=float(partial_match.group(3)),
+                )
+                extracted_data.append(data)
+
+    return extracted_data
+
+
 # extra #
 
 from scipy.optimize import curve_fit

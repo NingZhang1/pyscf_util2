@@ -828,7 +828,14 @@ def collect_nevpt2s(
                 PadeExtraRes[KEY] = res["weighted_pade_extra"]
                 PadeExtraErr[KEY] = res["weighted_pade_error"]
 
-    return LinearExtraRes, LinearExtraErr, QuadExtraRes, QuadExtraErr, PadeExtraRes, PadeExtraErr
+    return (
+        LinearExtraRes,
+        LinearExtraErr,
+        QuadExtraRes,
+        QuadExtraErr,
+        PadeExtraRes,
+        PadeExtraErr,
+    )
 
 
 if __name__ == "__main__":

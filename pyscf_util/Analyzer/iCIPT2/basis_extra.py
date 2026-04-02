@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
+
 class BasisExtrapolation:
     """
     能量外推类，包含HF能量的指数外推和关联能的X^-3外推
@@ -49,7 +50,11 @@ class BasisExtrapolation:
         popt: 拟合参数
         """
         # 设置初始猜测参数
-        p0 = [min(self.hf_energies), max(self.hf_energies) - min(self.hf_energies), np.random.rand()*0.5 + 0.5]
+        p0 = [
+            min(self.hf_energies),
+            max(self.hf_energies) - min(self.hf_energies),
+            np.random.rand() * 0.5 + 0.5,
+        ]
 
         try:
             # 使用curve_fit进行非线性最小二乘拟合
