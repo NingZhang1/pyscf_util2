@@ -91,10 +91,15 @@ def print_table_sci(DATA, KEY_RES, KEY_ERR):
     for key in DATA:
         data_print1 = [key]
         data_print2 = [key]
-        for key1, key2 in zip(KEY_RES, KEY_ERR):
-            data_print1.append(DATA[key][key1])
-            data_print1.append(DATA[key][key2])
-            data_print2.append(format_measurement(DATA[key][key1], DATA[key][key2]))
+        try:
+            for key1, key2 in zip(KEY_RES, KEY_ERR):
+                data_print1.append(DATA[key][key1])
+                data_print1.append(DATA[key][key2])
+                data_print2.append(format_measurement(DATA[key][key1], DATA[key][key2]))
+        except Exception as e:
+            data_print1.append(0.0)
+            data_print1.append(0.0)
+            data_print2.append("0(0)")
         data1.append(data_print1)
         data2.append(data_print2)
 

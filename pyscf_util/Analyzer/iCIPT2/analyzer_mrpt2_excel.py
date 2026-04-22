@@ -269,7 +269,7 @@ def analysis_mrpt2_excel(
             draw_extra_pic(
                 DATA_PRINT3, 2, 4, subspace_order_print, 24, 9, use_pade=True
             )
-    
+
     return return_res
 
 
@@ -307,6 +307,8 @@ def analysis_mrpt2_2_excel(
     header = ["Cmin", "ept2", "space", "ijr", "rsi", "ijrs"]
     subspace_order_print = ["space", "ijr", "rsi", "ijrs"]
 
+    return_res = {}
+
     if CMIN_MRENPT2 is None:
         CMIN_MRENPT2 = CMIN
     if NPT_MRENTP2 is None:
@@ -318,6 +320,11 @@ def analysis_mrpt2_2_excel(
     len_cmin_mrenpt2 = len(CMIN_MRENPT2)
 
     for mole in TASK:
+
+        return_res[mole] = {}
+        ept_tot = 0.0
+        ept_err = 0.0
+
         data_print = []
         DATA_EXTRA = {
             "space": {
@@ -447,6 +454,9 @@ def analysis_mrpt2_2_excel(
             data_small_pade.append(DATA_PRINT2[key]["weighted_pade_extra"])
             data_small_pade_error.append(DATA_PRINT2[key]["weighted_pade_error"])
 
+            ept_tot += DATA_PRINT2[key]["weighted_linear_extra"]
+            ept_err += DATA_PRINT2[key]["weighted_linear_error"] ** 2
+
         data_print.append(data_large_linear)
         data_print.append(data_large_quadratic)
         data_print.append(data_large_pade)
@@ -465,6 +475,14 @@ def analysis_mrpt2_2_excel(
         for x in data_print:
             # print(x)
             ws.append(x)
+
+        # update return res #
+
+        ept_err = np.sqrt(ept_err)
+        return_res[mole] = {
+            "ept": ept_tot,
+            "err": ept_err,
+        }
 
         # print #
 
@@ -494,3 +512,5 @@ def analysis_mrpt2_2_excel(
             draw_extra_pic(
                 DATA_PRINT3, 2, 2, subspace_order_print, 12, 9, use_pade=True
             )
+
+    return return_res
