@@ -4,6 +4,7 @@ from tabulate import tabulate
 from openpyxl import Workbook
 
 
+# 返回MRPT2总能量及其不确定度
 def analysis_mrpt2_excel(
     ENPT2_RES,
     MRENPT2_RES,
@@ -19,6 +20,7 @@ def analysis_mrpt2_excel(
     NLAST_REMOVE_SMALL=None,
     CMIN_MRENPT2=None,
     NPT_MRENTP2=None,
+    only_extra_res=False,
 ):
 
     ws = wb.create_sheet(wb_title)
@@ -48,7 +50,14 @@ def analysis_mrpt2_excel(
             exit(1)
     len_cmin_mrenpt2 = len(CMIN_MRENPT2)
 
+    return_res = {}
+
     for mole in TASK:
+
+        return_res[mole] = {}
+        ept_tot = 0.0
+        ept_err = 0.0
+
         data_print = []
         DATA_EXTRA = {
             "i": {
@@ -200,6 +209,9 @@ def analysis_mrpt2_excel(
             data_small_pade.append(DATA_PRINT2[key]["weighted_pade_extra"])
             data_small_pade_error.append(DATA_PRINT2[key]["weighted_pade_error"])
 
+            ept_tot += DATA_PRINT2[key]["weighted_linear_extra"]
+            ept_err += DATA_PRINT2[key]["weighted_linear_error"] ** 2
+
         data_print.append(data_large_linear)
         data_print.append(data_large_quadratic)
         data_print.append(data_large_pade)
@@ -214,9 +226,20 @@ def analysis_mrpt2_excel(
         data_print.append(data_small_quadratic_error)
         data_print.append(data_small_pade_error)
 
-        ws.append(header)
-        for x in data_print:
-            ws.append(x)
+        if not only_extra_res:
+            ws.append(header)
+            for x in data_print:
+                ws.append(x)
+        else:
+            ws.append(data_small_linear)
+
+        # update return res #
+
+        ept_err = np.sqrt(ept_err)
+        return_res[mole] = {
+            "ept": ept_tot,
+            "err": ept_err,
+        }
 
         # print #
 
@@ -246,6 +269,8 @@ def analysis_mrpt2_excel(
             draw_extra_pic(
                 DATA_PRINT3, 2, 4, subspace_order_print, 24, 9, use_pade=True
             )
+    
+    return return_res
 
 
 def analysis_mrpt2_2_excel(
