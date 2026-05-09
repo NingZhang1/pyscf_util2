@@ -46,6 +46,7 @@ def _Generate_InputFile_iCI(
     doublegroup=None,
     direct=None,
     macrocfg=None,
+    ptcutoff=None,
 ):
     inputfile = open(inputfilename, "w")
     inputfile.write("nsegment=%s\n" % (Segment))
@@ -67,6 +68,8 @@ def _Generate_InputFile_iCI(
         inputfile.write("direct=%d\n" % (direct))
     if macrocfg is not None:
         inputfile.write("macrocfg=%s\n" % (macrocfg))
+    if ptcutoff is not None:
+        inputfile.write("pt_cutoff_tol=%e\n" % (ptcutoff))
     inputfile.close()
 
 
