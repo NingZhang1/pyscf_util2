@@ -88,7 +88,9 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
         ### do linear analysis ###
 
         if NLAST_REMOVE is None:
+            
             # linear #
+            
             _, linear_extra, _, linear_error = LinearRegression_EstimateError(
                 ept[-NEXTRA:], etot[-NEXTRA:]
             )
@@ -98,22 +100,43 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
                     ept[-NEXTRA:], etot[-NEXTRA:], False, True
                 )
             )
-            # quad #
-            quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
-                ept[-NEXTRA:], etot[-NEXTRA:], False, False
-            )
-            # weighted quad #
-            weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
-                weighted_quadratic_fit_estimate_error(
-                    ept[-NEXTRA:], etot[-NEXTRA:], False, True
+            
+            if len(ept) >= 3 and NEXTRA >= 3:
+                
+                # quad #
+                quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
+                    ept[-NEXTRA:], etot[-NEXTRA:], False, False
                 )
-            )
-            # pade #
-            pade_extra, pade_error, pade_a, pade_b, pade_c = (
-                weighted_pade_fit_estimate_error(
-                    ept[-NEXTRA:], etot[-NEXTRA:], False, True
+                # weighted quad #
+                weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
+                    weighted_quadratic_fit_estimate_error(
+                        ept[-NEXTRA:], etot[-NEXTRA:], False, True
+                    )
                 )
-            )
+                # pade #
+                pade_extra, pade_error, pade_a, pade_b, pade_c = (
+                    weighted_pade_fit_estimate_error(
+                        ept[-NEXTRA:], etot[-NEXTRA:], False, True
+                    )
+                )
+            
+            else:
+                
+                quadratic_extra, quadratic_error = 0.0, 0.0
+                weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                )
+                pade_extra, pade_error, pade_a, pade_b, pade_c = (
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                )
 
         else:
             # linear #
@@ -130,31 +153,52 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
                     True,
                 )
             )
-            # quad #
-            quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
-                ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
-                etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
-                False,
-                False,
-            )
-            # weighted quad #
-            weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
-                weighted_quadratic_fit_estimate_error(
+            
+            if len(ept) >= 3 and NEXTRA >= 3:
+                
+                # quad #
+                quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
                     ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
                     etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
                     False,
-                    True,
-                )
-            )
-            # pade #
-            pade_extra, pade_error, pade_a, pade_b, pade_c = (
-                weighted_pade_fit_estimate_error(
-                    ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
-                    etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
                     False,
-                    True,
                 )
-            )
+                # weighted quad #
+                weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
+                    weighted_quadratic_fit_estimate_error(
+                        ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                        etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                        False,
+                        True,
+                    )
+                )
+                # pade #
+                pade_extra, pade_error, pade_a, pade_b, pade_c = (
+                    weighted_pade_fit_estimate_error(
+                        ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                        etot[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
+                        False,
+                        True,
+                    )
+                )
+
+            else:
+                
+                quadratic_extra, quadratic_error = 0.0, 0.0
+                weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                )
+                pade_extra, pade_error, pade_a, pade_b, pade_c = (
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                )
 
         ### return res ###
 
