@@ -80,13 +80,24 @@ class _iCIPT2_Driver:
 
         # (2) run the application #
 
-        ret_val = os.system(
-            "%s %s %s 1>%s 2>%s"
-            % (self._APP, inputfilename, fcidump, outputfilename, errorfilename)
-        )
+        # ret_val = os.system(
+        #     "%s %s %s 1>%s 2>%s"
+        #     % (self._APP, inputfilename, fcidump, outputfilename, errorfilename)
+        # )
 
-        if ret_val != 0:
-            raise ValueError("Error in running the application")
+        # if ret_val != 0:
+        #     raise ValueError("Error in running the application")
+
+        # more robust impl without resorting to shell #
+
+        exe = self._APP
+        inp = inputfilename
+        out = outputfilename
+        err = errorfilename
+        
+        import subprocess
+        with open(out, 'w') as out_f, open(err, 'w') as err_f:
+            subprocess.run([exe, inp, fcidump], stdout=out_f, stderr=err_f)
 
         # (3) remove the input file #
 
