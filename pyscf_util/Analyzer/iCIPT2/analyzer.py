@@ -423,7 +423,10 @@ def LinearRegression_EstimateError(x, y, print_verbose=False):
         print("R Square          : %16.8e\n" % a[2] ** 2)
         print("0.95 Interval x=0 : %16.8f +- %16.8e\n" % (a[1], b))
     # return [a[0], a[1], a[2]**2, (a[1]-y[-1])*10**6, b, a[2]**2]
-    return [a[0], a[1], a[2], b / t_25[N - 2]]
+    if N>2:
+        return [a[0], a[1], a[2], b / t_25[N - 2]]
+    else:
+        return [a[0], a[1], a[2], 0.0]
 
 
 ## perform the regression analysis ##
