@@ -238,12 +238,18 @@ def weighted_linear_fit_estimate_error(x, y, print_verbose=False, get_curve=Fals
 
     x = np.asarray(x)
     y = np.asarray(y)
+    
+    if len(x) == 2:
+        popt = [(y[-1] - y[-2]) / (x[-1] - x[-2])]
+        popt.append(y[-1] - popt[0] * x[-1])
+        pcov = np.zeros((2, 2))
 
     # popt, pcov = curve_fit(func, x, y, sigma=1 / abs(x), absolute_sigma=True)
     # popt, pcov = curve_fit(func, x, y, sigma=abs(x), absolute_sigma=True)
-    popt, pcov = curve_fit(
-        func, x, y, sigma=abs(x), p0=[(y[-1] - y[-2]) / (x[-1] - x[-2]), y[-1]]
-    )
+    else:
+        popt, pcov = curve_fit(
+            func, x, y, sigma=abs(x), p0=[(y[-1] - y[-2]) / (x[-1] - x[-2]), y[-1]]
+        )
 
     b = popt[1]
     b_error = np.sqrt(pcov[1][1])
@@ -407,7 +413,13 @@ def LinearRegression_EstimateError(x, y, print_verbose=False):
         Syy = Syy + (y[i] - Mean_y) ** 2
         Sxy = Sxy + (x[i] - Mean_x) * (y[i] - Mean_y)
     N = len(x)
-    a = stats.linregress(x, y)
+    if N > 2:
+        a = stats.linregress(x, y)
+    else:
+        a = []
+        a.append((y[-1] - y[-2]) / (x[-1] - x[-2]))
+        a.append(y[-1] - a[0] * x[-1])
+        a.append(1.0)
     sigma = 0.0
     if N > 2:
         sigma = (1.0 / (N - 2)) * (Syy - a[0] * Sxy)
@@ -423,7 +435,7 @@ def LinearRegression_EstimateError(x, y, print_verbose=False):
         print("R Square          : %16.8e\n" % a[2] ** 2)
         print("0.95 Interval x=0 : %16.8f +- %16.8e\n" % (a[1], b))
     # return [a[0], a[1], a[2]**2, (a[1]-y[-1])*10**6, b, a[2]**2]
-    if N>2:
+    if N > 2:
         return [a[0], a[1], a[2], b / t_25[N - 2]]
     else:
         return [a[0], a[1], a[2], 0.0]
