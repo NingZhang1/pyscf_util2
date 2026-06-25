@@ -555,8 +555,32 @@ def _dump_2e_outcore(
         feri_breit_SLLS.close()
 
 
+def _is_paldus_123(i, j, k, l):
+    return (i != j) and (i != k) and (i != l) and (j != k) and (j != l) and (k != l)
+
+
+def _is_paldus_456(i, j, k, l):
+    return ((i == k) and (j != l) and (i != j)) or ((j == l) and (i != k) and (i != j))
+
+
+def _is_dg(i, j, k, l):
+    is_true_case1 = (i == j) and (k == l)
+    is_true_case2 = (i == l) and (j == k)
+    return is_true_case1 or is_true_case2
+    # return (i == j) and (i == k) and (i == l)
+
+
 def _dump_2e(
-    fout, int2e_coulomb, int2e_breit, with_breit, IsComplex, symmetry="s1", tol=1e-8
+    fout,
+    int2e_coulomb,
+    int2e_breit,
+    with_breit,
+    IsComplex,
+    symmetry="s1",
+    tol=1e-8,
+    retain_paldus_123=True,
+    retain_paldus_456=True,
+    only_dg=False,
 ):
     """Dump the 2-electron integrals in FCIDUMP format (**incore** mode)
 
@@ -583,6 +607,22 @@ def _dump_2e(
                 for j in range(n2c):
                     for k in range(n2c):
                         for l in range(n2c):
+
+                            is_paldus_123 = _is_paldus_123(
+                                i // 2, j // 2, k // 2, l // 2
+                            )
+                            is_paldus_456 = _is_paldus_456(
+                                i // 2, j // 2, k // 2, l // 2
+                            )
+                            is_dg = _is_dg(i // 2, j // 2, k // 2, l // 2)
+
+                            if (not retain_paldus_123) and is_paldus_123:
+                                continue
+                            if (not retain_paldus_456) and is_paldus_456:
+                                continue
+                            if (not is_dg) and only_dg:
+                                continue
+
                             if abs(int2e_coulomb[i][j][k][l]) > tol:
                                 fout.write(
                                     "%18.12E %18.12E %4d %4d %4d %4d\n"
@@ -613,6 +653,22 @@ def _dump_2e(
                 for j in range(n2c):
                     for k in range(n2c):
                         for l in range(n2c):
+
+                            is_paldus_123 = _is_paldus_123(
+                                i // 2, j // 2, k // 2, l // 2
+                            )
+                            is_paldus_456 = _is_paldus_456(
+                                i // 2, j // 2, k // 2, l // 2
+                            )
+                            is_dg = _is_dg(i // 2, j // 2, k // 2, l // 2)
+
+                            if (not retain_paldus_123) and is_paldus_123:
+                                continue
+                            if (not retain_paldus_456) and is_paldus_456:
+                                continue
+                            if (not is_dg) and only_dg:
+                                continue
+
                             if abs(int2e_coulomb[i][j][k][l]) > tol:
                                 fout.write(
                                     "%18.12E %4d %4d %4d %4d\n"
@@ -644,6 +700,22 @@ def _dump_2e(
                 for j in range(i + 1):
                     for k in range(i + 1):
                         for l in range(n2c):
+
+                            is_paldus_123 = _is_paldus_123(
+                                i // 2, j // 2, k // 2, l // 2
+                            )
+                            is_paldus_456 = _is_paldus_456(
+                                i // 2, j // 2, k // 2, l // 2
+                            )
+                            is_dg = _is_dg(i // 2, j // 2, k // 2, l // 2)
+
+                            if (not retain_paldus_123) and is_paldus_123:
+                                continue
+                            if (not retain_paldus_456) and is_paldus_456:
+                                continue
+                            if (not is_dg) and only_dg:
+                                continue
+
                             if abs(int2e_coulomb[i][j][k][l]) > tol:
                                 fout.write(
                                     "%18.12E %18.12E %4d %4d %4d %4d\n"
@@ -674,6 +746,22 @@ def _dump_2e(
                 for j in range(i + 1):
                     for k in range(i + 1):
                         for l in range(n2c):
+
+                            is_paldus_123 = _is_paldus_123(
+                                i // 2, j // 2, k // 2, l // 2
+                            )
+                            is_paldus_456 = _is_paldus_456(
+                                i // 2, j // 2, k // 2, l // 2
+                            )
+                            is_dg = _is_dg(i // 2, j // 2, k // 2, l // 2)
+
+                            if (not retain_paldus_123) and is_paldus_123:
+                                continue
+                            if (not retain_paldus_456) and is_paldus_456:
+                                continue
+                            if (not is_dg) and only_dg:
+                                continue
+
                             if abs(int2e_coulomb[i][j][k][l]) > tol:
                                 fout.write(
                                     "%18.12E %4d %4d %4d %4d\n"

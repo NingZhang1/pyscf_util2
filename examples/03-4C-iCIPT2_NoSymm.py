@@ -7,7 +7,7 @@ from pyscf_util.Relativisitc.integral_4C import (
 
 mol = gto.M(
     atom="F 0 0 0",
-    basis="cc-pvdz-dk",
+    basis="unc-cc-pvdz-dk",
     verbose=5,
     charge=-1,
     spin=0,
@@ -24,6 +24,37 @@ FCIDUMP_NAME = "FCIDUMP_F"
 
 FCIDUMP_Rela4C(mol, mf, True, filename=FCIDUMP_NAME, mode="outcore")
 
+FCIDUMP_Rela4C(
+    mol,
+    mf,
+    True,
+    filename=FCIDUMP_NAME + "_no2e",
+    mode="incore",
+    # no_2e=True,
+    debug=True,
+    only_dg=True,
+)
+FCIDUMP_Rela4C(
+    mol,
+    mf,
+    True,
+    filename=FCIDUMP_NAME + "_no123",
+    mode="incore",
+    retain_paldus_123=False,
+    debug=True,
+)
+FCIDUMP_Rela4C(
+    mol,
+    mf,
+    True,
+    filename=FCIDUMP_NAME + "_no123456",
+    mode="incore",
+    retain_paldus_123=False,
+    retain_paldus_456=False,
+    only_dg=True,
+    debug=True,
+)
+
 # kernel(
 #     True,
 #     task_name="iCIPT2_4C_F",
@@ -38,7 +69,7 @@ FCIDUMP_Rela4C(mol, mf, True, filename=FCIDUMP_NAME, mode="outcore")
 
 mol = gto.M(
     atom="O 0 0 0",
-    basis="cc-pvdz-dk",
+    basis="unc-cc-pvdz-dk",
     verbose=5,
     charge=-2,
     spin=0,
@@ -48,6 +79,10 @@ mol.build()
 mf = scf.dhf.RDHF(mol)
 mf.conv_tol = 1e-12
 mf.kernel()
+
+FCIDUMP_NAME = "FCIDUMP_O_Coulomb"
+FCIDUMP_Rela4C(mol, mf, True, filename=FCIDUMP_NAME, mode="outcore")
+
 mf.with_breit = True
 mf.kernel()
 

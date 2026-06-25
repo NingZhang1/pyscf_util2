@@ -34,6 +34,10 @@ def FCIDUMP_Rela4C(
     IsComplex=True,
     tol=1e-8,
     debug=False,
+    no_2e=False,
+    retain_paldus_123=True,
+    retain_paldus_456=True,
+    only_dg=False,
 ):
     """Dump the relativistic 4-component integrals in FCIDUMP format
 
@@ -240,50 +244,57 @@ def FCIDUMP_Rela4C(
         # output_format = float_format + float_format + ' %4d %4d %4d %4d\n'
         # if int2e_coulomb.ndim == 4:
 
-        if mode != "outcore":
-            if debug:
-                _dump_2e(
-                    fout,
-                    int2e_coulomb,
-                    int2e_breit,
-                    with_breit,
-                    IsComplex,
-                    symmetry="s1",
-                    tol=tol,
-                )
+        if not no_2e:
+            if mode != "outcore":
+                if debug:
+                    _dump_2e(
+                        fout,
+                        int2e_coulomb,
+                        int2e_breit,
+                        with_breit,
+                        IsComplex,
+                        symmetry="s1",
+                        tol=tol,
+                        retain_paldus_123=retain_paldus_123,
+                        retain_paldus_456=retain_paldus_456,
+                        only_dg=only_dg,
+                    )
+                else:
+                    _dump_2e(
+                        fout,
+                        int2e_coulomb,
+                        int2e_breit,
+                        with_breit,
+                        IsComplex,
+                        symmetry="s4",
+                        tol=tol,
+                        retain_paldus_123=retain_paldus_123,
+                        retain_paldus_456=retain_paldus_456,
+                        only_dg=only_dg,
+                    )
             else:
-                _dump_2e(
-                    fout,
-                    int2e_coulomb,
-                    int2e_breit,
-                    with_breit,
-                    IsComplex,
-                    symmetry="s4",
-                    tol=tol,
-                )
-        else:
-            if debug:
-                _dump_2e_outcore(
-                    fout,
-                    npes,
-                    PREFIX,
-                    with_breit,
-                    with_gaunt,
-                    IsComplex,
-                    symmetry="s1",
-                    tol=tol,
-                )
-            else:
-                _dump_2e_outcore(
-                    fout,
-                    npes,
-                    PREFIX,
-                    with_breit,
-                    with_gaunt,
-                    IsComplex,
-                    symmetry="s4",
-                    tol=tol,
-                )
+                if debug:
+                    _dump_2e_outcore(
+                        fout,
+                        npes,
+                        PREFIX,
+                        with_breit,
+                        with_gaunt,
+                        IsComplex,
+                        symmetry="s1",
+                        tol=tol,
+                    )
+                else:
+                    _dump_2e_outcore(
+                        fout,
+                        npes,
+                        PREFIX,
+                        with_breit,
+                        with_gaunt,
+                        IsComplex,
+                        symmetry="s4",
+                        tol=tol,
+                    )
 
         ############################################ DUMP E1 #############################################
 
@@ -292,6 +303,8 @@ def FCIDUMP_Rela4C(
             for i in range(npes):
                 # for j in range(n2c):
                 for j in range(i + 1):
+                    if only_dg and ((i // 2) != (j // 2)):
+                        continue
                     if abs(h1e[i, j]) > tol:
                         fout.write(
                             output_format
@@ -304,6 +317,8 @@ def FCIDUMP_Rela4C(
             for i in range(npes):
                 # for j in range(n2c):
                 for j in range(i + 1):
+                    if only_dg and ((i // 2) != (j // 2)):
+                        continue
                     if abs(h1e[i, j]) > tol:
                         fout.write(output_format % (h1e[i, j].real, i + 1, j + 1))
             output_format = float_format + " 0  0  0  0\n"
