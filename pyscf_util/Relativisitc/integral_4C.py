@@ -224,7 +224,7 @@ def FCIDUMP_Rela4C(
 
     energy_core = mol.get_enuc()
 
-    nmo = n2c // 2
+    nmo = npes // 2
     nelec = mol.nelectron
     ms = 0
     tol = 1e-8
@@ -236,7 +236,12 @@ def FCIDUMP_Rela4C(
         for _ in range(nmo):
             orbsym_ID.append(0)
     else:
-        orbsym_ID = orbsym_ID[nmo:]
+        if len(orbsym_ID) == n2c:
+            orbsym_ID = orbsym_ID[n2c // 2 : n2c // 2 + nmo]
+        elif len(orbsym_ID) == (n2c // 2):
+            orbsym_ID = orbsym_ID[:nmo]
+        else:
+            raise RuntimeError
 
     with open(filename, "w") as fout:  # 4-fold symmetry
         tools.fcidump.write_head(fout, nmo, nelec, ms, orbsym_ID)
@@ -301,8 +306,8 @@ def FCIDUMP_Rela4C(
         if IsComplex:
             output_format = float_format + float_format + " %4d %4d  0  0\n"
             for i in range(npes):
-                # for j in range(n2c):
-                for j in range(i + 1):
+                for j in range(npes):
+                    # for j in range(i + 1):
                     if only_dg and ((i // 2) != (j // 2)):
                         continue
                     if abs(h1e[i, j]) > tol:
@@ -315,8 +320,8 @@ def FCIDUMP_Rela4C(
         else:
             output_format = float_format + " %4d %4d  0  0\n"
             for i in range(npes):
-                # for j in range(n2c):
-                for j in range(i + 1):
+                for j in range(npes):
+                    # for j in range(i + 1):
                     if only_dg and ((i // 2) != (j // 2)):
                         continue
                     if abs(h1e[i, j]) > tol:
@@ -355,6 +360,7 @@ def FCIDUMP_Rela4C_SU2(
     filename="fcidump",
     mode="incore",
     debug=False,
+    no_2e=False,
 ):
 
     from pyscf_util.Relativisitc.double_group import (
@@ -391,6 +397,7 @@ def FCIDUMP_Rela4C_SU2(
         orbsym_ID=mo_parity,
         IsComplex=False,
         debug=debug,
+        no_2e=no_2e,
     )
 
     if debug:
@@ -403,6 +410,8 @@ def FCIDUMP_Rela4C_SU2(
             orbsym_ID=None,
             IsComplex=True,
             debug=debug,
+            no_2e=no_2e,
+            npes=npes,
         )
 
     return coulomb, breit, mo_parity, mo_coeff

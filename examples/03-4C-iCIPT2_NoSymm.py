@@ -17,43 +17,52 @@ mol.build()
 mf = scf.dhf.RDHF(mol)
 mf.conv_tol = 1e-12
 mf.kernel()
+
+FCIDUMP_NAME = "FCIDUMP_F_Coulomb"
+
+FCIDUMP_Rela4C(
+    mol, mf, False, filename=FCIDUMP_NAME, mode="outcore", debug=True, npes=18
+)
+
 mf.with_breit = True
 mf.kernel()
 
 FCIDUMP_NAME = "FCIDUMP_F"
 
-FCIDUMP_Rela4C(mol, mf, True, filename=FCIDUMP_NAME, mode="outcore")
+FCIDUMP_Rela4C(
+    mol, mf, True, filename=FCIDUMP_NAME, mode="outcore", debug=True, npes=18
+)
 
-FCIDUMP_Rela4C(
-    mol,
-    mf,
-    True,
-    filename=FCIDUMP_NAME + "_no2e",
-    mode="incore",
-    # no_2e=True,
-    debug=True,
-    only_dg=True,
-)
-FCIDUMP_Rela4C(
-    mol,
-    mf,
-    True,
-    filename=FCIDUMP_NAME + "_no123",
-    mode="incore",
-    retain_paldus_123=False,
-    debug=True,
-)
-FCIDUMP_Rela4C(
-    mol,
-    mf,
-    True,
-    filename=FCIDUMP_NAME + "_no123456",
-    mode="incore",
-    retain_paldus_123=False,
-    retain_paldus_456=False,
-    only_dg=True,
-    debug=True,
-)
+# FCIDUMP_Rela4C(
+#     mol,
+#     mf,
+#     True,
+#     filename=FCIDUMP_NAME + "_no2e",
+#     mode="incore",
+#     no_2e=True,
+#     debug=True,
+#     # only_dg=True,
+# )
+# FCIDUMP_Rela4C(
+#     mol,
+#     mf,
+#     True,
+#     filename=FCIDUMP_NAME + "_no123",
+#     mode="incore",
+#     retain_paldus_123=False,
+#     debug=True,
+# )
+# FCIDUMP_Rela4C(
+#     mol,
+#     mf,
+#     True,
+#     filename=FCIDUMP_NAME + "_no123456",
+#     mode="incore",
+#     retain_paldus_123=False,
+#     retain_paldus_456=False,
+#     only_dg=True,
+#     debug=True,
+# )
 
 # kernel(
 #     True,
@@ -81,11 +90,15 @@ mf.conv_tol = 1e-12
 mf.kernel()
 
 FCIDUMP_NAME = "FCIDUMP_O_Coulomb"
-FCIDUMP_Rela4C(mol, mf, True, filename=FCIDUMP_NAME, mode="outcore")
+FCIDUMP_Rela4C(
+    mol, mf, False, filename=FCIDUMP_NAME, mode="outcore", debug=True, npes=18
+)
 
 mf.with_breit = True
 mf.kernel()
 
 FCIDUMP_NAME = "FCIDUMP_O"
 
-FCIDUMP_Rela4C(mol, mf, True, filename=FCIDUMP_NAME, mode="outcore")
+FCIDUMP_Rela4C(
+    mol, mf, True, filename=FCIDUMP_NAME, mode="outcore", debug=True, npes=18
+)

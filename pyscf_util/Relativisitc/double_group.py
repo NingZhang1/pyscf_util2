@@ -694,6 +694,29 @@ def _atm_spinor_2_d2h_adapted_spinor(mol):
     return Res, indxA
 
 
+### time rversal symm adapted ###
+
+
+def time_reversal_symm_adapted(mol, mo_coeff):
+
+    n2c = mol.nao_2c()
+    if mo_coeff.shape[1] == n2c:
+        mo_pes = mo_coeff.copy()
+    else:
+        mo_pes = mo_coeff[:, n2c:]
+
+    tr_mat = _apply_time_reversal_op(mol, mo_pes, debug=True)
+
+    for i in range(0, mo_pes.shape[1], 2):
+        assert tr_mat[i][0] == i + 1
+        if abs(tr_mat[i][1].real + 1) < 1e-4:
+            if True:
+                print("swap the sign of the orbitals ", i + 1)
+            mo_pes[:, i + 1] *= -1.0
+
+    return mo_pes
+
+
 ### the only working function ###
 
 
