@@ -25,5 +25,3 @@ mf.MP2().kernel()
 FCIDUMP_NAME = "H2O.FCIDUMP"
 
 tools.fcidump.from_scf(mf, FCIDUMP_NAME, 1e-10)
-
-

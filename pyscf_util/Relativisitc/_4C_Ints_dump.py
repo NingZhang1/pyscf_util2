@@ -24,7 +24,13 @@ breit_SLLS = "%s_breit_SLLS.h5"
 
 
 def _r_outcore_Coulomb(
-    mol, my_RDHF, npes, prefix, max_memory=MAX_MEMORY, ioblk_size=IOBLK_SIZE
+    mol,
+    my_RDHF,
+    npes,
+    prefix,  #
+    max_memory=MAX_MEMORY,
+    ioblk_size=IOBLK_SIZE,  #
+    with_nes=False,
 ):
 
     from pyscf.ao2mo import r_outcore
@@ -33,9 +39,12 @@ def _r_outcore_Coulomb(
     mo_coeff = my_RDHF.mo_coeff
     mo_coeff_mat = numpy.matrix(mo_coeff)
 
-    mo_coeff_pes = mo_coeff_mat[:, n2c : n2c + npes]
-    mo_coeff_L = mo_coeff_pes[:n2c, :]
-    mo_coeff_S = mo_coeff_pes[n2c:, :]
+    if with_nes:
+        mo_coeff_spinor = mo_coeff_mat[:, : n2c + npes]
+    else:
+        mo_coeff_spinor = mo_coeff_mat[:, n2c : n2c + npes]
+    mo_coeff_L = mo_coeff_spinor[:n2c, :]
+    mo_coeff_S = mo_coeff_spinor[n2c:, :]
 
     r_outcore.general(
         mol,
@@ -76,7 +85,13 @@ def _r_outcore_Coulomb(
 
 
 def _r_outcore_Breit(
-    mol, my_RDHF, npes, prefix, max_memory=MAX_MEMORY, ioblk_size=IOBLK_SIZE
+    mol,
+    my_RDHF,
+    npes,
+    prefix,  #
+    max_memory=MAX_MEMORY,
+    ioblk_size=IOBLK_SIZE,
+    with_nes=False,
 ):
 
     from pyscf.ao2mo import r_outcore
@@ -88,6 +103,13 @@ def _r_outcore_Breit(
     mo_coeff_pes = mo_coeff_mat[:, n2c : n2c + npes]
     mo_coeff_L = mo_coeff_pes[:n2c, :]
     mo_coeff_S = mo_coeff_pes[n2c:, :]
+
+    if with_nes:
+        mo_coeff_spinor = mo_coeff_mat[:, : n2c + npes]
+    else:
+        mo_coeff_spinor = mo_coeff_mat[:, n2c : n2c + npes]
+    mo_coeff_L = mo_coeff_spinor[:n2c, :]
+    mo_coeff_S = mo_coeff_spinor[n2c:, :]
 
     r_outcore.general(
         mol,
@@ -128,7 +150,13 @@ def _r_outcore_Breit(
 
 
 def _r_outcore_Gaunt(
-    mol, my_RDHF, npes, prefix, max_memory=MAX_MEMORY, ioblk_size=IOBLK_SIZE
+    mol,
+    my_RDHF,
+    npes,
+    prefix,  #
+    max_memory=MAX_MEMORY,
+    ioblk_size=IOBLK_SIZE,  #
+    with_nes=False,
 ):
 
     from pyscf.ao2mo import r_outcore
@@ -137,9 +165,12 @@ def _r_outcore_Gaunt(
     mo_coeff = my_RDHF.mo_coeff
     mo_coeff_mat = numpy.matrix(mo_coeff)
 
-    mo_coeff_pes = mo_coeff_mat[:, n2c : n2c + npes]
-    mo_coeff_L = mo_coeff_pes[:n2c, :]
-    mo_coeff_S = mo_coeff_pes[n2c:, :]
+    if with_nes:
+        mo_coeff_spinor = mo_coeff_mat[:, : n2c + npes]
+    else:
+        mo_coeff_spinor = mo_coeff_mat[:, n2c : n2c + npes]
+    mo_coeff_L = mo_coeff_spinor[:n2c, :]
+    mo_coeff_S = mo_coeff_spinor[n2c:, :]
 
     r_outcore.general(
         mol,

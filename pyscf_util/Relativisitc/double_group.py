@@ -720,7 +720,7 @@ def time_reversal_symm_adapted(mol, mo_coeff):
 ### the only working function ###
 
 
-def atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, debug=False):
+def atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, nes=False, debug=False):
 
     spinor_2_adapted, indA = _atm_spinor_2_d2h_adapted_spinor(mol)
     n2c = mol.nao_2c()
@@ -730,13 +730,18 @@ def atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, debug=False):
         print("indB = ", indB)
 
     if mo_coeff.shape[1] == n2c:
-        mo_pes = mo_coeff.copy()
+        if nes:
+            raise ValueError("nes is not supported for mo_coeff.shape[1] == n2c")
+        mo_res = mo_coeff.copy()
     else:
-        mo_pes = mo_coeff[:, n2c:]
-    mo_pes_large_comp = mo_pes[:n2c, :]
+        if nes:
+            mo_res = mo_coeff[:, :n2c].copy()
+        else:
+            mo_res = mo_coeff[:, n2c:].copy()
+    mo_res_large_comp = mo_res[:n2c, :]
 
     mo_coeff_over_adapted_spinor = numpy.dot(
-        spinor_2_adapted.conj().T, mo_pes_large_comp
+        spinor_2_adapted.conj().T, mo_res_large_comp
     )
 
     if debug:
@@ -762,11 +767,11 @@ def atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, debug=False):
         if debug:
             print("norm_real = ", norm_real, "norm_imag = ", norm_imag)
         if norm_real < norm_imag:
-            mo_pes[:, i] *= 1.0j
+            mo_res[:, i] *= 1.0j
 
-    mo_pes_large_comp = mo_pes[:n2c, :]
+    mo_res_large_comp = mo_res[:n2c, :]
     mo_coeff_over_adapted_spinor = numpy.dot(
-        spinor_2_adapted.conj().T, mo_pes_large_comp
+        spinor_2_adapted.conj().T, mo_res_large_comp
     ).real
 
     ##################### second step make sure that all the orbitals are real #####################
@@ -780,6 +785,7 @@ def atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, debug=False):
 
         norm_A = numpy.linalg.norm(coeff_tmp1[indA])
         norm_B = numpy.linalg.norm(coeff_tmp1[indB])
+
         if debug:
             print("norm_A = ", norm_A, "norm_B = ", norm_B)
         if norm_A < norm_B:
@@ -791,36 +797,36 @@ def atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, debug=False):
             coeff_tmp1 = copy.deepcopy(mo_coeff_over_adapted_spinor[:, i])
             mo_coeff_over_adapted_spinor[:, i] = mo_coeff_over_adapted_spinor[:, i + 1]
             mo_coeff_over_adapted_spinor[:, i + 1] = coeff_tmp1
-            # swap mo_pes
-            tmp = copy.deepcopy(mo_pes[:, i])
-            mo_pes[:, i] = mo_pes[:, i + 1]
-            mo_pes[:, i + 1] = tmp
+            # swap mo_res
+            tmp = copy.deepcopy(mo_res[:, i])
+            mo_res[:, i] = mo_res[:, i + 1]
+            mo_res[:, i + 1] = tmp
 
     # second the sign problem
 
     # from Util_Rela4C import _apply_time_reversal_op
 
-    tr_mat = _apply_time_reversal_op(mol, mo_pes, debug=debug)
+    tr_mat = _apply_time_reversal_op(mol, mo_res, debug=debug)
 
-    # print("mo_pes.shape = ", mo_pes.shape)
+    # print("mo_res.shape = ", mo_res.shape)
 
-    for i in range(0, mo_pes.shape[1], 2):
+    for i in range(0, mo_res.shape[1], 2):
         assert tr_mat[i][0] == i + 1
         if abs(tr_mat[i][1].real + 1) < 1e-4:
             if debug:
                 print("swap the sign of the orbitals ", i + 1)
-            mo_pes[:, i + 1] *= -1.0
+            mo_res[:, i + 1] *= -1.0
 
     # if debug:
-    #     _apply_time_reversal_op(mol, mo_pes, debug=debug)
+    #     _apply_time_reversal_op(mol, mo_res, debug=debug)
 
     # generate new mo_coeff
 
     if debug:
         # check
-        mo_pes_large_comp = mo_pes[:n2c, :]
+        mo_res_large_comp = mo_res[:n2c, :]
         mo_coeff_over_adapted_spinor = numpy.dot(
-            spinor_2_adapted.conj().T, mo_pes_large_comp
+            spinor_2_adapted.conj().T, mo_res_large_comp
         )
 
         for j in range(mo_coeff_over_adapted_spinor.shape[1]):
@@ -836,7 +842,7 @@ def atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, debug=False):
                         )
                     )
 
-    return mo_pes
+    return mo_res
 
 
 if __name__ == "__main__":
@@ -879,6 +885,7 @@ if __name__ == "__main__":
 
     spinor_2_adapted, indA = _atm_spinor_2_d2h_adapted_spinor(mol)
 
+    print(spinor_2_adapted)
     print("indA = ", indA)
 
     print(mol.symm_orb)

@@ -38,6 +38,7 @@ def FCIDUMP_Rela4C(
     retain_paldus_123=True,
     retain_paldus_456=True,
     only_dg=False,
+    with_nes=False,
 ):
     """Dump the relativistic 4-component integrals in FCIDUMP format
 
@@ -66,10 +67,16 @@ def FCIDUMP_Rela4C(
     if npes is None:
         npes = n2c
 
-    mo_coeff_pes = mo_coeff_mat[:, n2c : n2c + npes]
+    if with_nes:
+        mo_coeff_spinor = mo_coeff_mat[:, : n2c + npes]
+    else:
+        mo_coeff_spinor = mo_coeff_mat[:, n2c : n2c + npes]
 
     hcore = my_RDHF.get_hcore()
-    h1e = reduce(numpy.dot, (mo_coeff_pes.H, hcore, mo_coeff_pes))
+    h1e = reduce(numpy.dot, (mo_coeff_spinor.H, hcore, mo_coeff_spinor))
+    
+    # print(numpy.diag(h1e))
+    # exit(1)
 
     n4c = 2 * n2c
 
@@ -101,10 +108,12 @@ def FCIDUMP_Rela4C(
         int2e_res[n2c:, n2c:, n2c:, n2c:] = (
             mol.intor("int2e_spsp1spsp2_spinor") * c1**4
         )  # SS SS
-        int2e_coulomb = lib.einsum("ijkl,ip->pjkl", int2e_res, mo_coeff_pes.conj())
-        int2e_coulomb = lib.einsum("pjkl,jq->pqkl", int2e_coulomb, mo_coeff_pes)
-        int2e_coulomb = lib.einsum("pqkl,kr->pqrl", int2e_coulomb, mo_coeff_pes.conj())
-        int2e_coulomb = lib.einsum("pqrl,ls->pqrs", int2e_coulomb, mo_coeff_pes)
+        int2e_coulomb = lib.einsum("ijkl,ip->pjkl", int2e_res, mo_coeff_spinor.conj())
+        int2e_coulomb = lib.einsum("pjkl,jq->pqkl", int2e_coulomb, mo_coeff_spinor)
+        int2e_coulomb = lib.einsum(
+            "pqkl,kr->pqrl", int2e_coulomb, mo_coeff_spinor.conj()
+        )
+        int2e_coulomb = lib.einsum("pqrl,ls->pqrs", int2e_coulomb, mo_coeff_spinor)
         if with_breit or with_gaunt:
             int2e_breit = numpy.zeros((n4c, n4c, n4c, n4c), dtype=numpy.complex128)
             ##### (LS|LS) and (SL|SL) #####
@@ -118,17 +127,21 @@ def FCIDUMP_Rela4C(
             tmp2 = mol.intor(INT_SLLS_name) * c1**2
             int2e_breit[n2c:, :n2c, :n2c, n2c:] = tmp2  # (SL|LS)
             ###############################
-            int2e_breit = lib.einsum("ijkl,ip->pjkl", int2e_breit, mo_coeff_pes.conj())
-            int2e_breit = lib.einsum("pjkl,jq->pqkl", int2e_breit, mo_coeff_pes)
-            int2e_breit = lib.einsum("pqkl,kr->pqrl", int2e_breit, mo_coeff_pes.conj())
-            int2e_breit = lib.einsum("pqrl,ls->pqrs", int2e_breit, mo_coeff_pes)
+            int2e_breit = lib.einsum(
+                "ijkl,ip->pjkl", int2e_breit, mo_coeff_spinor.conj()
+            )
+            int2e_breit = lib.einsum("pjkl,jq->pqkl", int2e_breit, mo_coeff_spinor)
+            int2e_breit = lib.einsum(
+                "pqkl,kr->pqrl", int2e_breit, mo_coeff_spinor.conj()
+            )
+            int2e_breit = lib.einsum("pqrl,ls->pqrs", int2e_breit, mo_coeff_spinor)
         else:
             int2e_breit = None
     elif mode == "incore":
         c1 = 0.5 / lib.param.LIGHT_SPEED
         ### LLLL part ###
         int2e_tmp = mol.intor("int2e_spinor")
-        mo_coeff_L = mo_coeff_pes[:n2c, :]
+        mo_coeff_L = mo_coeff_spinor[:n2c, :]
         int2e_res = lib.einsum(
             "pqrs,pi,qj,rk,sl->ijkl",
             int2e_tmp,
@@ -139,7 +152,7 @@ def FCIDUMP_Rela4C(
         )
         ### SSLL part ###
         int2e_tmp = mol.intor("int2e_spsp1_spinor") * c1**2
-        mo_coeff_S = mo_coeff_pes[n2c:, :]
+        mo_coeff_S = mo_coeff_spinor[n2c:, :]
         int2e_tmp = lib.einsum(
             "pqrs,pi,qj,rk,sl->ijkl",
             int2e_tmp,
@@ -209,12 +222,12 @@ def FCIDUMP_Rela4C(
         # pyscf.ao2mo.r_outcore.general
         # raise NotImplementedError("outcore mode is not implemented yet")
 
-        _r_outcore_Coulomb(mol, my_RDHF, npes, PREFIX)
+        _r_outcore_Coulomb(mol, my_RDHF, npes, PREFIX, with_nes=with_nes)
         if with_breit:
-            _r_outcore_Breit(mol, my_RDHF, npes, PREFIX)
+            _r_outcore_Breit(mol, my_RDHF, npes, PREFIX, with_nes=with_nes)
         else:
             if with_gaunt:
-                _r_outcore_Gaunt(mol, my_RDHF, npes, PREFIX)
+                _r_outcore_Gaunt(mol, my_RDHF, npes, PREFIX, with_nes=with_nes)
 
         int2e_coulomb = None
         int2e_breit = None
@@ -225,6 +238,8 @@ def FCIDUMP_Rela4C(
     energy_core = mol.get_enuc()
 
     nmo = npes // 2
+    if with_nes:
+        nmo += n2c // 2
     nelec = mol.nelectron
     ms = 0
     tol = 1e-8
@@ -237,8 +252,15 @@ def FCIDUMP_Rela4C(
             orbsym_ID.append(0)
     else:
         if len(orbsym_ID) == n2c:
-            orbsym_ID = orbsym_ID[n2c // 2 : n2c // 2 + nmo]
+            if with_nes:
+                orbsym_ID = orbsym_ID[:nmo]
+            else:
+                orbsym_ID = orbsym_ID[n2c // 2 : n2c // 2 + nmo]
         elif len(orbsym_ID) == (n2c // 2):
+            if with_nes:
+                raise RuntimeError(
+                    "orbsym_ID should have length n2c//2 + npes//2 when with_nes=True"
+                )
             orbsym_ID = orbsym_ID[:nmo]
         else:
             raise RuntimeError
@@ -281,7 +303,8 @@ def FCIDUMP_Rela4C(
                 if debug:
                     _dump_2e_outcore(
                         fout,
-                        npes,
+                        # npes,
+                        nmo * 2,
                         PREFIX,
                         with_breit,
                         with_gaunt,
@@ -292,7 +315,8 @@ def FCIDUMP_Rela4C(
                 else:
                     _dump_2e_outcore(
                         fout,
-                        npes,
+                        # npes,
+                        nmo * 2,
                         PREFIX,
                         with_breit,
                         with_gaunt,
@@ -305,8 +329,8 @@ def FCIDUMP_Rela4C(
 
         if IsComplex:
             output_format = float_format + float_format + " %4d %4d  0  0\n"
-            for i in range(npes):
-                for j in range(npes):
+            for i in range(nmo * 2):
+                for j in range(nmo * 2):
                     # for j in range(i + 1):
                     if only_dg and ((i // 2) != (j // 2)):
                         continue
@@ -319,8 +343,8 @@ def FCIDUMP_Rela4C(
             fout.write(output_format % nuc)
         else:
             output_format = float_format + " %4d %4d  0  0\n"
-            for i in range(npes):
-                for j in range(npes):
+            for i in range(nmo * 2):
+                for j in range(nmo * 2):
                     # for j in range(i + 1):
                     if only_dg and ((i // 2) != (j // 2)):
                         continue
@@ -361,6 +385,7 @@ def FCIDUMP_Rela4C_SU2(
     mode="incore",
     debug=False,
     no_2e=False,
+    with_nes=False,
 ):
 
     from pyscf_util.Relativisitc.double_group import (
@@ -372,15 +397,22 @@ def FCIDUMP_Rela4C_SU2(
     ######## adapt the molecular orbitals to the Jz symmetry and tr symmetry ########
 
     mo_coeff = _atom_Jz_adapted(mol, my_RDHF.mo_coeff, my_RDHF.mo_energy, debug=debug)
-    mo_pes = atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, debug)
+    mo_pes = atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, debug=debug)
+    mo_nes = atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, True, debug=debug)
     n2c = mol.nao_2c()
     mo_coeff[:, n2c:] = mo_pes
+    mo_coeff[:, :n2c] = mo_nes
 
     mo_parity = _atom_spinor_spatial_parity(mol, mo_coeff, debug=debug)
 
-    print("mo_parity = ", mo_parity)
+    # print("size of mo_parity = ", len(mo_parity))
+    # exit(1)
+
+    if debug:
+        print("mo_parity = ", mo_parity)
     mo_parity = [x for id, x in enumerate(mo_parity) if id % 2 == 0]
-    print("mo_parity = ", mo_parity)
+    if debug:
+        print("mo_parity = ", mo_parity)
 
     my_RDHF.mo_coeff = mo_coeff
 
@@ -398,6 +430,7 @@ def FCIDUMP_Rela4C_SU2(
         IsComplex=False,
         debug=debug,
         no_2e=no_2e,
+        with_nes=with_nes,
     )
 
     if debug:
@@ -412,6 +445,7 @@ def FCIDUMP_Rela4C_SU2(
             debug=debug,
             no_2e=no_2e,
             npes=npes,
+            with_nes=with_nes,
         )
 
     return coulomb, breit, mo_parity, mo_coeff

@@ -35,6 +35,30 @@ FCIDUMP_Rela4C_SU2(
     mol, mf, True, filename=FCIDUMP_NAME, mode="outcore", debug=True, npes=18
 )
 
+mol = gto.M(
+    atom="F 0 0 0",
+    basis="cc-pvdz-dk",
+    verbose=5,
+    charge=-1,
+    spin=0,
+    symmetry="d2h",
+)
+mol.build()
+mf = scf.dhf.RDHF(mol)
+mf.conv_tol = 1e-12
+mf.with_breit = True
+mf.kernel()
+
+FCIDUMP_Rela4C_SU2(
+    mol,
+    mf,
+    True,
+    filename=FCIDUMP_NAME + "_nes",
+    mode="outcore",
+    debug=True,
+    with_nes=True,
+)
+
 # FCIDUMP_NAME = "FCIDUMP_F_no2e"
 # FCIDUMP_Rela4C_SU2(
 #     mol, mf, True, filename=FCIDUMP_NAME, mode="outcore", debug=True, no_2e=True
