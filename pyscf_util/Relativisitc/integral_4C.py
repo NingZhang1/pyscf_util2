@@ -74,7 +74,7 @@ def FCIDUMP_Rela4C(
 
     hcore = my_RDHF.get_hcore()
     h1e = reduce(numpy.dot, (mo_coeff_spinor.H, hcore, mo_coeff_spinor))
-    
+
     # print(numpy.diag(h1e))
     # exit(1)
 
