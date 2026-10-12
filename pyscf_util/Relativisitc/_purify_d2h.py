@@ -622,6 +622,348 @@ def purify_pes_d2h(mol, mf, pure_tol=1e-10):
     return res
 
 
+def purify_pes_d2h_v2(mol, mf, pure_tol=1e-10, non_vanishing_tol=1e-8):
+
+    IRREP_NAME_D2H_FULL = ["Ag", "B1g", "B2g", "B3g", "Au", "B1u", "B2u", "B3u"]
+
+    ALLOWED_SYM = [["Ag", "Au"], ["B1g", "B1u"], ["B2g", "B2u"], ["B3g", "B3u"]]
+
+    ALLOWED_SYM_UNBARRED = [
+        ["B2g", "B2u"],
+        ["B3g", "B3u"],
+        ["Ag", "Au"],
+        ["B1g", "B1u"],
+    ]
+
+    # generate ao2L component #
+
+    ao2Lalpha = get_ao2L_spinor(mol)
+    ao2Lbeta = get_ao2L_spinor(mol, False)
+
+    # generate mo_Lalpha, mo_Lbeta #
+
+    n2c = mol.nao_2c()
+    mo_Lalpha_coeff = ao2Lalpha @ mf.mo_coeff[:n2c, n2c:]
+    mo_Lbeta_coeff = ao2Lbeta @ mf.mo_coeff[:n2c, n2c:]
+    mo_Lalpha_coeff_real = mo_Lalpha_coeff.real
+    mo_Lalpha_coeff_imag = mo_Lalpha_coeff.imag
+    mo_Lbeta_coeff_real = mo_Lbeta_coeff.real
+    mo_Lbeta_coeff_imag = mo_Lbeta_coeff.imag
+
+    res = mf.mo_coeff[:, n2c:].copy()
+
+    ovlp = mol.intor("int1e_ovlp")
+
+    for i in range(0, n2c, 2):  # loop over unbarred only #
+
+        print("---------------------------------------")
+        print("i = ", i)
+
+        #####################################
+        ## collect the basic info ##
+        #####################################
+
+        while True:
+
+            norm_alpha_real = (
+                mo_Lalpha_coeff_real[:, i].T @ ovlp @ mo_Lalpha_coeff_real[:, i]
+            )
+            norm_alpha_imag = (
+                mo_Lalpha_coeff_imag[:, i].T @ ovlp @ mo_Lalpha_coeff_imag[:, i]
+            )
+            norm_beta_real = (
+                mo_Lbeta_coeff_real[:, i].T @ ovlp @ mo_Lbeta_coeff_real[:, i]
+            )
+            norm_beta_imag = (
+                mo_Lbeta_coeff_imag[:, i].T @ ovlp @ mo_Lbeta_coeff_imag[:, i]
+            )
+
+            norm_lst = [
+                norm_alpha_real,
+                norm_alpha_imag,
+                norm_beta_real,
+                norm_beta_imag,
+            ]
+            mo_coeff_lst = numpy.array(
+                [
+                    mo_Lalpha_coeff_real[:, i],
+                    mo_Lalpha_coeff_imag[:, i],
+                    mo_Lbeta_coeff_real[:, i],
+                    mo_Lbeta_coeff_imag[:, i],
+                ]
+            )
+
+            norm_alpha_real_bar = (
+                mo_Lalpha_coeff_real[:, i + 1].T @ ovlp @ mo_Lalpha_coeff_real[:, i + 1]
+            )
+            norm_alpha_imag_bar = (
+                mo_Lalpha_coeff_imag[:, i + 1].T @ ovlp @ mo_Lalpha_coeff_imag[:, i + 1]
+            )
+            norm_beta_real_bar = (
+                mo_Lbeta_coeff_real[:, i + 1].T @ ovlp @ mo_Lbeta_coeff_real[:, i + 1]
+            )
+            norm_beta_imag_bar = (
+                mo_Lbeta_coeff_imag[:, i + 1].T @ ovlp @ mo_Lbeta_coeff_imag[:, i + 1]
+            )
+
+            norm_lst_bar = [
+                norm_alpha_real_bar,
+                norm_alpha_imag_bar,
+                norm_beta_real_bar,
+                norm_beta_imag_bar,
+            ]
+            mo_coeff_lst_bar = numpy.array(
+                [
+                    mo_Lalpha_coeff_real[:, i + 1],
+                    mo_Lalpha_coeff_imag[:, i + 1],
+                    mo_Lbeta_coeff_real[:, i + 1],
+                    mo_Lbeta_coeff_imag[:, i + 1],
+                ]
+            )
+
+            is_all_pure = True
+
+            is_unbarred_pure = True
+            is_barred_pure = True
+            is_break_out = False
+
+            for icomp in range(4):
+
+                print("icomp = ", icomp)
+
+                norm_comp = norm_lst[icomp]
+                norm_comp_bar = norm_lst_bar[icomp]
+
+                print("norm = ", norm_comp, norm_comp_bar)
+
+                unbarred_non_vanishing = norm_comp > non_vanishing_tol
+                bar_non_vanishing = norm_comp_bar > non_vanishing_tol
+
+                if not unbarred_non_vanishing and not bar_non_vanishing:
+                    continue
+
+                if unbarred_non_vanishing and bar_non_vanishing:
+                    symm_comp_norm_square, symorb = label_orb_symm(
+                        mol,
+                        mol.irrep_name,
+                        mol.symm_orb,
+                        mo_coeff_lst[icomp].reshape(-1, 1),
+                        ovlp,
+                    )
+
+                    symm_comp_norm_square_bar, symorb_bar = label_orb_symm(
+                        mol,
+                        mol.irrep_name,
+                        mol.symm_orb,
+                        mo_coeff_lst_bar[icomp].reshape(-1, 1),
+                        ovlp,
+                    )
+
+                    argmax_symm_comp = numpy.argmax(numpy.array(symm_comp_norm_square))
+                    argmax_symm_comp_value = symm_comp_norm_square[argmax_symm_comp]
+                    argmax_symm_comp_irrep_name = mol.irrep_name[argmax_symm_comp]
+
+                    if argmax_symm_comp_value < (1 - pure_tol):
+                        is_unbarred_pure = False
+
+                    argmax_symm_comp_bar = numpy.argmax(
+                        numpy.array(symm_comp_norm_square_bar)
+                    )
+                    argmax_symm_comp_value_bar = symm_comp_norm_square_bar[
+                        argmax_symm_comp_bar
+                    ]
+                    argmax_symm_comp_irrep_name_bar = mol.irrep_name[
+                        argmax_symm_comp_bar
+                    ]
+
+                    if argmax_symm_comp_value_bar < (1 - pure_tol):
+                        is_barred_pure = False
+
+                    if is_unbarred_pure and is_barred_pure:
+                        print(
+                            "both pure with ",
+                            argmax_symm_comp_irrep_name,
+                            argmax_symm_comp_irrep_name_bar,
+                        )
+                        
+                        print(symorb[:, argmax_symm_comp])
+                        print(symorb_bar[:, argmax_symm_comp_bar])
+                    
+                    # TODO: rotate 一下 #
+
+                # never check others #
+
+                is_all_pure = True
+                is_unbarred_pure = True
+                is_barred_pure = True
+                break
+
+                # if unbarred_not_vanishing #
+
+                if unbarred_non_vanishing:
+                    symm_comp_norm_square, _ = label_orb_symm(
+                        mol,
+                        mol.irrep_name,
+                        mol.symm_orb,
+                        mo_coeff_lst[icomp].reshape(-1, 1),
+                        ovlp,
+                    )
+
+                    print("unbar ", symm_comp_norm_square)
+
+                    argmax_symm_comp = numpy.argmax(numpy.array(symm_comp_norm_square))
+                    argmax_symm_comp_value = symm_comp_norm_square[argmax_symm_comp]
+                    argmax_symm_comp_irrep_name = mol.irrep_name[argmax_symm_comp]
+
+                    if argmax_symm_comp_value < (1 - pure_tol):
+                        is_unbarred_pure = False
+                        is_barred_pure = False
+                        is_all_pure = False
+
+                        print("unbarred comp %d does not admit one irrep" % (icomp))
+
+                        break
+
+                    # 只有 1 个对称性 #
+
+                    if argmax_symm_comp_irrep_name not in ALLOWED_SYM[icomp]:
+                        # is_all_pure = False
+                        is_break_out = True
+                        begin_idx = (icomp // 2) * 2
+                        is_phase_i = False
+                        for idx in range(begin_idx, begin_idx + 2):
+                            if (
+                                argmax_symm_comp_irrep_name in ALLOWED_SYM[idx]
+                            ):  # 差了 i 相位
+                                res[:, i] *= 1.0j
+                                res[:, i + 1] *= -1.0j
+                                is_phase_i = True
+
+                                print("unbarred comp %d change phase i" % (icomp))
+
+                                break
+                        # alpha, beta 反了 #
+                        if not is_phase_i:
+                            res[:, i], res[:, i + 1] = res[:, i + 1], res[:, i]
+                            res[:, i + 1] *= -1.0
+                            print("unbarred comp %d swap basis" % (icomp))
+
+                if is_break_out:
+                    break
+
+                # if barred_not_vanishing #
+
+                if bar_non_vanishing:
+                    symm_comp_norm_square, _ = label_orb_symm(
+                        mol,
+                        mol.irrep_name,
+                        mol.symm_orb,
+                        mo_coeff_lst_bar[icomp].reshape(-1, 1),
+                        ovlp,
+                    )
+
+                    print("bar ", symm_comp_norm_square)
+
+                    argmax_symm_comp = numpy.argmax(numpy.array(symm_comp_norm_square))
+                    argmax_symm_comp_value = symm_comp_norm_square[argmax_symm_comp]
+                    argmax_symm_comp_irrep_name = mol.irrep_name[argmax_symm_comp]
+
+                    if argmax_symm_comp_value < (1 - pure_tol):
+                        is_unbarred_pure = False
+                        is_barred_pure = False
+                        is_all_pure = False
+
+                        print("barred comp %d does not admit one irrep" % (icomp))
+
+                        print(
+                            unbarred_non_vanishing,
+                            bar_non_vanishing,
+                            is_unbarred_pure,
+                            is_barred_pure,
+                            is_all_pure,
+                        )
+
+                        break
+
+                    # 只有 1 个对称性 #
+
+                    if argmax_symm_comp_irrep_name not in ALLOWED_SYM_UNBARRED[icomp]:
+                        # is_all_pure = False
+                        is_break_out = True
+                        begin_idx = (icomp // 2) * 2
+                        is_phase_i = False
+                        for idx in range(begin_idx, begin_idx + 2):
+                            if (
+                                argmax_symm_comp_irrep_name in ALLOWED_SYM_UNBARRED[idx]
+                            ):  # 差了 i 相位
+                                res[:, i + 1] *= 1.0j
+                                res[:, i] *= -1.0j
+                                is_phase_i = True
+                                print("barred comp %d change phase i" % (icomp))
+                                break
+                        # alpha, beta 反了 #
+                        print(
+                            "argmax_symm_comp_irrep_name", argmax_symm_comp_irrep_name
+                        )
+                        if not is_phase_i:
+                            res[:, i], res[:, i + 1] = res[:, i + 1], res[:, i]
+                            res[:, i + 1] *= -1.0
+                            print("barred comp %d swap basis" % (icomp))
+
+                print(
+                    unbarred_non_vanishing,
+                    bar_non_vanishing,
+                    is_unbarred_pure,
+                    is_barred_pure,
+                    is_all_pure,
+                )
+
+                if is_break_out:
+                    break
+
+                if not is_unbarred_pure and not is_barred_pure:
+                    print("both not pure")
+                    break
+
+                if not unbarred_non_vanishing and not is_barred_pure:
+                    print("bar phase rotation we have not deal with")
+                    break
+
+                if not bar_non_vanishing and not is_unbarred_pure:
+                    print("unbar phase rotation we have not deal with")
+                    break
+
+                print(
+                    unbarred_non_vanishing,
+                    bar_non_vanishing,
+                    is_unbarred_pure,
+                    is_barred_pure,
+                    is_all_pure,
+                )
+
+                # raise RuntimeError
+
+            # break
+
+            print("before check whether to break out while")
+
+            if is_all_pure and not is_break_out:
+                assert is_unbarred_pure and is_barred_pure
+                break
+            else:
+                # update info #
+                if not is_unbarred_pure and not is_barred_pure:
+                    print("both unbarred and barred not pure")
+                    break
+
+                mo_Lalpha_coeff = ao2Lalpha @ res[:n2c, :]
+                mo_Lbeta_coeff = ao2Lbeta @ res[:n2c, :]
+                mo_Lalpha_coeff_real = mo_Lalpha_coeff.real
+                mo_Lalpha_coeff_imag = mo_Lalpha_coeff.imag
+                mo_Lbeta_coeff_real = mo_Lbeta_coeff.real
+                mo_Lbeta_coeff_imag = mo_Lbeta_coeff.imag
+
+
 # purify for d2h and its subgroup #
 
 if __name__ == "__main__":
@@ -659,6 +1001,8 @@ H  -0.928900   0.000000  -1.232100
     mf.conv_tol = 1e-12
     mf.kernel()
     purify_pes_d2h(mol, mf)
+
+    purify_pes_d2h_v2(mol, mf)
 
     # print(mol.symm_orb)
     # print(mol.irrep_name)
