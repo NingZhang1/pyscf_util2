@@ -4,36 +4,36 @@ from functools import reduce
 from pyscf import lib
 from pyscf import tools
 import pyscf
+from pyscf.symm import sph
 
 
 def get_ao2L_spinor(mol, is_alpha=True):
 
-    n = mol.nao_2c()
-    nao = n // 2
-
+    # n = mol.nao_2c()
+    # nao = n // 2
     # JzLabel = numpy.diag(_get_Jz_AO(mol)[:n,:n])
+    # res = numpy.zeros((nao, n), dtype=numpy.complex128)
+    # loc_n = 0
+    # loc_nao = 0
+    # for i in range(mol.nbas):
+    #     l = mol.bas_angular(i)
+    #     nctr = mol.bas_nctr(i)
+    #     if is_alpha:
+    #         tmp = gto.sph2spinor_l(l)[0]
+    #     else:
+    #         tmp = gto.sph2spinor_l(l)[1]
+    #     assert tmp.shape == (2 * l + 1, 4 * l + 2)
+    #     res[loc_n : loc_n + 2 * l + 1, loc_nao : loc_nao + 4 * l + 2] = tmp
+    #     loc_n += 2 * l + 1
+    #     loc_nao += 4 * l + 2
+    # return res
 
-    res = numpy.zeros((nao, n), dtype=numpy.complex128)
+    ao2Lalpha_bench, ao2Lbeta_bench = sph.sph2spinor_coeff(mol)
 
-    loc_n = 0
-    loc_nao = 0
-
-    for i in range(mol.nbas):
-        l = mol.bas_angular(i)
-        nctr = mol.bas_nctr(i)
-
-        if is_alpha:
-            tmp = gto.sph2spinor_l(l)[0]
-        else:
-            tmp = gto.sph2spinor_l(l)[1]
-        assert tmp.shape == (2 * l + 1, 4 * l + 2)
-
-        res[loc_n : loc_n + 2 * l + 1, loc_nao : loc_nao + 4 * l + 2] = tmp
-
-        loc_n += 2 * l + 1
-        loc_nao += 4 * l + 2
-
-    return res
+    if is_alpha:
+        return ao2Lalpha_bench
+    else:
+        return ao2Lbeta_bench
 
 
 if __name__ == "__main__":
