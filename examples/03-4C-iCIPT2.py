@@ -19,13 +19,33 @@ mf.conv_tol = 1e-12
 mf.kernel()
 
 FCIDUMP_NAME = "FCIDUMP_F_Coulomb"
-FCIDUMP_Rela4C_SU2(
-    mol, mf, False, filename=FCIDUMP_NAME, mode="outcore", debug=True, npes=18
+coulomb, _, _, _ = FCIDUMP_Rela4C_SU2(
+    mol, mf, False, filename=FCIDUMP_NAME, mode="incore", debug=True, npes=18
 )
 # FCIDUMP_NAME = "FCIDUMP_F_Coulomb_no2e"
 # FCIDUMP_Rela4C_SU2(
 #     mol, mf, False, filename=FCIDUMP_NAME, mode="outcore", debug=True, no_2e=True
 # )
+
+for i in range(18):
+    for j in range(18):
+        for k in range(18):
+            for l in range(18):
+                n_odd = 0
+                if i % 2 == 1:
+                    n_odd += 1
+                if j % 2 == 1:
+                    n_odd += 1
+                if k % 2 == 1:
+                    n_odd += 1
+                if l % 2 == 1:
+                    n_odd += 1
+                if n_odd % 2 == 1:
+                    if abs(coulomb[i, j, k, l]) >= 1e-10:
+                        print(
+                            "warning : coulomb[%3d,%3d,%3d,%3d] = %20.16e not zero"
+                            % (i, j, k, l, coulomb[i, j, k, l])
+                        )
 
 mf.with_breit = True
 mf.kernel()

@@ -450,11 +450,14 @@ def FCIDUMP_Rela4C_SU2(
 
     return coulomb, breit, mo_parity, mo_coeff
 
+
 def FCIDUMP_Rela4C_D2h():
     return
 
+
 def FCIDUMP_Rela4C_C2v():
     return
+
 
 if __name__ == "__main__":
     from pyscf import gto, scf

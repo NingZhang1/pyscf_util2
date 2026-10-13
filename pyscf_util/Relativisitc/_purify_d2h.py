@@ -85,6 +85,8 @@ def check_spinor_adapted(mol, pes_mocoeff, pure_tol=1e-10, non_vanishing_tol=1e-
     for _ in range(n2c // 2):
         result_dominant_comp.append(1.0)
 
+    print("mol.irrep_name = ", mol.irrep_name)
+
     for i in range(0, n2c, 2):
 
         print("do i = ", i)
@@ -143,7 +145,20 @@ def check_spinor_adapted(mol, pes_mocoeff, pure_tol=1e-10, non_vanishing_tol=1e-
 
         is_all_adapted = True
 
+        # print("norm_lst     = ", norm_lst)
+        # print("norm_lst_bar = ", norm_lst_bar)
+
+        argmax_loc = numpy.argmax(numpy.array(norm_lst))
+        argmax_loc_bar = numpy.argmax(numpy.array(norm_lst_bar))
+
+        unbar_not_pure_norm = None
+        bar_not_pure_norm = None
+        argmax_symm_comp_value_not_pure = None
+        argmax_symm_comp_value_bar_not_pure = None
+
         for icomp in range(4):
+
+            # print("icomp = ", icomp)
 
             norm_comp = norm_lst[icomp]
             norm_comp_bar = norm_lst_bar[icomp]
@@ -167,13 +182,26 @@ def check_spinor_adapted(mol, pes_mocoeff, pure_tol=1e-10, non_vanishing_tol=1e-
                 argmax_symm_comp_value = symm_comp_norm_square[argmax_symm_comp]
                 argmax_symm_comp_irrep_name = mol.irrep_name[argmax_symm_comp]
 
+                # print("unbarred = ", symm_comp_norm_square)
+
                 if argmax_symm_comp_value < (1 - pure_tol):
                     print(
                         "comp %d unbarred is not pure since no single irrep dominates with largest comp %20.16f"
                         % (icomp, argmax_symm_comp_value)
                     )
                     is_all_adapted = False
-                    result_dominant_comp[i // 2] = argmax_symm_comp_value
+
+                    # result_dominant_comp[i // 2] = argmax_symm_comp_value
+
+                    if unbar_not_pure_norm is None:
+                        unbar_not_pure_norm = norm_lst[icomp]
+                        result_dominant_comp[i // 2] = argmax_symm_comp_value
+                        argmax_symm_comp_value_not_pure = argmax_symm_comp_value
+                    else:
+                        if norm_lst[icomp] > unbar_not_pure_norm:
+                            unbar_not_pure_norm = norm_lst[icomp]
+                            result_dominant_comp[i // 2] = argmax_symm_comp_value
+                            argmax_symm_comp_value_not_pure = argmax_symm_comp_value
 
                 if is_all_adapted:
                     if argmax_symm_comp_irrep_name not in ALLOWED_SYM[icomp]:
@@ -184,8 +212,8 @@ def check_spinor_adapted(mol, pes_mocoeff, pure_tol=1e-10, non_vanishing_tol=1e-
                         is_all_adapted = False
                         result_dominant_comp[i // 2] = 0.0
 
-            if not is_all_adapted:
-                break
+            # if not is_all_adapted:
+            #     break
 
             if bar_non_vanishing:
                 symm_comp_norm_square_bar, _ = label_orb_symm(
@@ -195,6 +223,8 @@ def check_spinor_adapted(mol, pes_mocoeff, pure_tol=1e-10, non_vanishing_tol=1e-
                     mo_coeff_lst_bar[icomp].reshape(-1, 1),
                     ovlp,
                 )
+
+                # print("barred = ", symm_comp_norm_square_bar)
 
                 argmax_symm_comp = numpy.argmax(numpy.array(symm_comp_norm_square_bar))
                 argmax_symm_comp_value = symm_comp_norm_square_bar[argmax_symm_comp]
@@ -206,7 +236,17 @@ def check_spinor_adapted(mol, pes_mocoeff, pure_tol=1e-10, non_vanishing_tol=1e-
                         % (icomp, argmax_symm_comp_value)
                     )
                     is_all_adapted = False
-                    result_dominant_comp[i // 2] = argmax_symm_comp_value
+                    # result_dominant_comp[i // 2] = argmax_symm_comp_value
+
+                    if bar_not_pure_norm is None:
+                        bar_not_pure_norm = norm_lst_bar[icomp]
+                        result_dominant_comp[i // 2] = argmax_symm_comp_value
+                        argmax_symm_comp_value_bar_not_pure = argmax_symm_comp_value
+                    else:
+                        if norm_lst_bar[icomp] > bar_not_pure_norm:
+                            bar_not_pure_norm = norm_lst_bar[icomp]
+                            result_dominant_comp[i // 2] = argmax_symm_comp_value
+                            argmax_symm_comp_value_bar_not_pure = argmax_symm_comp_value
 
                 if is_all_adapted:
                     if argmax_symm_comp_irrep_name not in ALLOWED_SYM_BARRED[icomp]:
@@ -225,8 +265,29 @@ def check_spinor_adapted(mol, pes_mocoeff, pure_tol=1e-10, non_vanishing_tol=1e-
                         is_all_adapted = False
                         result_dominant_comp[i // 2] = 0.0
 
-            if not is_all_adapted:
-                break
+            # if not is_all_adapted:
+            #     break
+
+            if (
+                argmax_symm_comp_value_bar_not_pure is not None
+                or argmax_symm_comp_value_not_pure is not None
+            ):
+                assert not is_all_adapted
+                if (
+                    argmax_symm_comp_value_bar_not_pure is not None
+                    and argmax_symm_comp_value_not_pure is not None
+                ):
+                    result_dominant_comp[i // 2] = max(
+                        argmax_symm_comp_value_bar_not_pure,
+                        argmax_symm_comp_value_not_pure,
+                    )
+                else:
+                    if argmax_symm_comp_value_bar_not_pure is not None:
+                        result_dominant_comp[i // 2] = (
+                            argmax_symm_comp_value_bar_not_pure
+                        )
+                    else:
+                        result_dominant_comp[i // 2] = argmax_symm_comp_value_not_pure
 
         result.append(is_all_adapted)
 
@@ -561,6 +622,7 @@ def purify_spinor_with_mixed_irrep(
     non_vanishing_tol=1e-8,
     always_use_max_norm_comp=False,
 ):
+
     # nothing to do #
 
     if all(adapted_spinor):
@@ -1651,7 +1713,7 @@ def purify_pes_d2h(mol, mf, pure_tol=1e-10, non_vanishing_tol=1e-8, max_iter=8):
         spinor_cached_dominant_comp.append(1.0)
     for i in range(pes_mocoeff.shape[1] // 2):
         if not adapted_spinor[i]:
-            spinor_cached[i] = pes_mocoeff[:, 2 * i : 2 * i + 2]
+            spinor_cached[i] = pes_mocoeff[:, 2 * i : 2 * i + 2].copy()
             spinor_cached_dominant_comp[i] = spinor_dominant_comp[i]
 
     ##############################
@@ -1671,7 +1733,7 @@ def purify_pes_d2h(mol, mf, pure_tol=1e-10, non_vanishing_tol=1e-8, max_iter=8):
                 if not adapted_spinor[i] and (
                     spinor_dominant_comp[i] > spinor_cached_dominant_comp[i]
                 ):
-                    spinor_cached[i] = pes_mocoeff[:, 2 * i : 2 * i + 2]
+                    spinor_cached[i] = pes_mocoeff[:, 2 * i : 2 * i + 2].copy()
                     spinor_cached_dominant_comp[i] = spinor_dominant_comp[i]
                 elif adapted_spinor[i]:
                     spinor_cached[i] = None
@@ -1690,7 +1752,7 @@ def purify_pes_d2h(mol, mf, pure_tol=1e-10, non_vanishing_tol=1e-8, max_iter=8):
                 if not adapted_spinor[i] and (
                     spinor_dominant_comp[i] > spinor_cached_dominant_comp[i]
                 ):
-                    spinor_cached[i] = pes_mocoeff[:, 2 * i : 2 * i + 2]
+                    spinor_cached[i] = pes_mocoeff[:, 2 * i : 2 * i + 2].copy()
                     spinor_cached_dominant_comp[i] = spinor_dominant_comp[i]
                 elif adapted_spinor[i]:
                     spinor_cached[i] = None
@@ -1707,7 +1769,133 @@ def purify_pes_d2h(mol, mf, pure_tol=1e-10, non_vanishing_tol=1e-8, max_iter=8):
                     "Use cached spinor %3d with dominant comp %20.16f"
                     % (i, spinor_cached_dominant_comp[i])
                 )
-                pes_mocoeff[:, 2 * i : 2 * i + 2] = spinor_cached[i]
+                pes_mocoeff[:, 2 * i : 2 * i + 2] = spinor_cached[i].copy()
+
+    check_spinor_adapted(mol, pes_mocoeff)
+
+    return pes_mocoeff
+
+
+import numpy as np
+
+
+def warshall(A):
+    """
+    使用 Warshall 算法计算有向图的传递闭包（可达矩阵）。
+
+    参数:
+        A: 二维 0/1 矩阵，A[i][j] = 1 表示 i 到 j 有直接边
+    返回:
+        R: 布尔矩阵，R[i][j] = True 表示 i 到 j 有通路
+    """
+    A = np.asarray(A, dtype=bool)
+    n = A.shape[0]
+
+    R = A.copy()
+
+    # 如果认为“点到自己总是可达的”，保留下面这行；
+    # 如果只关心不同点之间，可以注释掉。
+    np.fill_diagonal(R, True)
+
+    for k in range(n):
+        # 所有 i 能到 k，且 k 能到 j，则 i 能到 j
+        R |= np.logical_and.outer(R[:, k], R[k, :])
+
+    R = np.asarray(R, dtype=int)
+
+    return R
+
+
+def purify_pes_d2h_v2(mol, mf, vanish_tol=1e-10, align_tol=1e-5):  # much better ?
+
+    print("------------ purify_pes_d2h_v2 -------------")
+
+    pes_mocoeff = mf.mo_coeff[:, mol.nao_2c() :].copy()
+
+    hcore_ao = mf.get_hcore()
+    hcore_mo = mf.mo_coeff.conj().T @ hcore_ao @ mf.mo_coeff
+
+    hcore_mo_imag = hcore_mo[mol.nao_2c() :, mol.nao_2c() :].imag
+    if not numpy.allclose(hcore_mo_imag, 0.0, atol=1e-10):
+        print(
+            "warning : hcore_mo_imag not close to zero, max = ",
+            numpy.max(numpy.abs(hcore_mo_imag)),
+        )
+        print(
+            "we cannot do the purification for d2h and its subgroup, since the hcore_mo is not real in pes space"
+        )
+        return pes_mocoeff
+    hcore_mo = hcore_mo[mol.nao_2c() :, mol.nao_2c() :].real
+
+    n2c = mol.nao_2c()
+
+    # print 一轮 #
+
+    aligned = numpy.zeros(
+        (pes_mocoeff.shape[1] // 2, pes_mocoeff.shape[1] // 2), dtype=bool
+    )
+
+    for i in range(pes_mocoeff.shape[1] // 2):
+        # for i in range(2):
+        for j in range(i + 1, pes_mocoeff.shape[1] // 2):
+            a1 = hcore_mo[2 * i, 2 * j]
+            b1 = hcore_mo[2 * i, 2 * j + 1]
+            a2 = hcore_mo[2 * i + 1, 2 * j + 1]
+            b2 = hcore_mo[2 * i + 1, 2 * j]
+
+            block = numpy.array([[a1, b1], [b2, a2]])
+            # print("block %3d %3d" % (i, j), block)
+
+            if abs(a1) > align_tol and abs(b1) < vanish_tol:
+                aligned[i, j] = True
+                aligned[j, i] = True
+                # print("block %3d %3d aligned" % (i, j))
+            else:
+                if abs(a1) > align_tol:
+                    if abs(b1) > vanish_tol:
+                        if aligned[i, j]:
+                            print(
+                                "warning : block %3d %3d has non-vanishing off-diagonal elements % 12.6e"
+                                % (i, j, abs(b1))
+                            )
+                        else:
+                            print("align block %3d %3d" % (i, j))
+                            ratio_ef = b1 / a1
+                            e = 1.0 / numpy.sqrt(1 + abs(ratio_ef) ** 2)
+                            f = ratio_ef * e
+                            print(e, f)
+                            mo_new = pes_mocoeff[:, 2 * j : 2 * j + 2] @ numpy.array(
+                                [[e, -f], [f, e]]
+                            )
+                            pes_mocoeff[:, 2 * j : 2 * j + 2] = mo_new
+                            aligned[j, i] = True
+                            aligned[i, j] = True
+
+        hcore_mo = pes_mocoeff.conj().T @ hcore_ao @ pes_mocoeff
+        hcore_mo = hcore_mo.real
+        aligned = warshall(aligned)
+
+    aligned = warshall(aligned)
+
+    for i in range(pes_mocoeff.shape[1] // 2):
+        for j in range(i + 1, pes_mocoeff.shape[1] // 2):
+            if aligned[i, j]:
+                a1 = hcore_mo[2 * i, 2 * j]
+                b1 = hcore_mo[2 * i, 2 * j + 1]
+                a2 = hcore_mo[2 * i + 1, 2 * j + 1]
+                b2 = hcore_mo[2 * i + 1, 2 * j]
+
+                block = numpy.array([[a1, b1], [b2, a2]])
+                # print("aligned block %3d %3d" % (i, j), block)
+                # print("abs b1     = ", abs(b1))
+                # print("vanish_tol = ", vanish_tol)
+                if abs(b1) > vanish_tol:
+                    print(
+                        "warning : aligned block %3d %3d has non-vanishing off-diagonal elements %12.6e"
+                        % (i, j, abs(b1))
+                    )
+
+    print("------------ purify_pes_d2h_v2 done -------------")
 
     return pes_mocoeff
 
@@ -1718,6 +1906,7 @@ if __name__ == "__main__":
 
     from Lalpha_ao2spinor import get_ao2L_spinor
     from pyscf.symm import geom
+    import integral_4C
 
     mol = gto.M(
         atom="""
@@ -1728,8 +1917,8 @@ H  -0.928900   0.000000   1.232100
 H   0.928900   0.000000  -1.232100
 H  -0.928900   0.000000  -1.232100
 """,
-        basis="unc-cc-pvdz-dk",
-        # basis="3-21g",
+        # basis="unc-cc-pvdz-dk",
+        basis="3-21g",
         # basis="cc-pvdz-dk",
         verbose=5,
         charge=0,
@@ -1750,11 +1939,23 @@ H  -0.928900   0.000000  -1.232100
     mf.conv_tol = 1e-12
     mf.kernel()
 
-    gpname, origin, axes = geom.detect_symm(mol._atom)
-    print(gpname, origin, axes)  # axes 必须是一个右手系 !
+    purify_pes_d2h_v2(mol, mf)
+
+    hcore_ao = mf.get_hcore()
+    hcore_mo = mf.mo_coeff.conj().T @ hcore_ao @ mf.mo_coeff
+    hcore_mo_pes = hcore_mo[mol.nao_2c() :, mol.nao_2c() :]
+    for i in range(hcore_mo_pes.shape[0]):
+        for j in range(hcore_mo_pes.shape[1]):
+            if abs(i - j) % 2 != 0:
+                if abs(hcore_mo_pes[i, j]) > 1e-8:
+                    print(
+                        "warning : hcore_mo_pes[%3d,%3d] = %20.16e not zero"
+                        % (i, j, hcore_mo_pes[i, j])
+                    )
     # exit(1)
 
-    res = purify_pes_d2h(mol, mf, max_iter=8)
+    # res = purify_pes_d2h(mol, mf, non_vanishing_tol=1e-12, max_iter=8)
+    res = purify_pes_d2h_v2(mol, mf)
 
     # 检查轨道能是否出问题 #
 
@@ -1762,17 +1963,76 @@ H  -0.928900   0.000000  -1.232100
     mo_energy = mf.mo_energy[n2c:]
     mo_coeff = mf.mo_coeff.copy()
     mo_coeff[:, n2c:] = res
+    mf.mo_coeff = mo_coeff
+    mf.mo_energy = mo_energy
 
     fock_ao = mf.get_fock()
-    print(fock_ao.shape)
+    ovlp_ao = mf.get_ovlp()
 
+    # print(fock_ao.shape)
+
+    ovlp_mo = mo_coeff.conj().T @ ovlp_ao @ mo_coeff
     fock_mo = mo_coeff.conj().T @ fock_ao @ mo_coeff
 
     fock_mo_offdg = fock_mo - numpy.diag(numpy.diag(fock_mo))
     # assert numpy.allclose(fock_mo_offdg[n2c:, n2c:], 0.0)
     print("max abs offdg %20.16e" % (numpy.max(numpy.abs(fock_mo_offdg[n2c:, n2c:]))))
+    diff_ovlp = ovlp_mo - numpy.eye(ovlp_mo.shape[0])
+    print("max abs diff ovlp %20.16e" % (numpy.max(numpy.abs(diff_ovlp))))
+    # exit(1)
 
     mo_energy2 = numpy.diag(fock_mo)[n2c:]
 
     for x, y in zip(mo_energy, mo_energy2):
         print("%24.16f %24.16f" % (x, y))
+
+    hcore_ao = mf.get_hcore()
+    hcore_mo = mf.mo_coeff.conj().T @ hcore_ao @ mf.mo_coeff
+    hcore_mo_pes = hcore_mo[mol.nao_2c() :, mol.nao_2c() :]
+    for i in range(hcore_mo_pes.shape[0]):
+        for j in range(hcore_mo_pes.shape[1]):
+            if abs(i - j) % 2 != 0:
+                if abs(hcore_mo_pes[i, j]) > 1e-8:
+                    print(
+                        "warning : hcore_mo_pes[%3d,%3d] = %20.16e not zero"
+                        % (i, j, hcore_mo_pes[i, j])
+                    )
+
+    # dump 4C 积分 #
+
+    coulomb, breit = integral_4C.FCIDUMP_Rela4C(
+        mol, mf, False, npes=28, filename="FCIDUMP_C2H4_bench", debug=True
+    )
+
+    assert breit is None
+    print(coulomb.shape)
+
+    coulomb_real = coulomb.real
+    coulomb_imag = coulomb.imag
+
+    print(numpy.allclose(coulomb_imag, 0.0))
+    print("max imag %20.16e" % (numpy.max(numpy.abs(coulomb_imag))))
+
+    integral_4C.FCIDUMP_Rela4C(
+        mol, mf, False, npes=28, filename="FCIDUMP_C2H4", IsComplex=False
+    )
+
+    for i in range(28):
+        for j in range(28):
+            for k in range(28):
+                for l in range(28):
+                    n_odd = 0
+                    if i % 2 == 1:
+                        n_odd += 1
+                    if j % 2 == 1:
+                        n_odd += 1
+                    if k % 2 == 1:
+                        n_odd += 1
+                    if l % 2 == 1:
+                        n_odd += 1
+                    if n_odd % 2 == 1:
+                        if abs(coulomb_real[i, j, k, l]) >= 1e-7:
+                            print(
+                                "warning : coulomb_real[%3d,%3d,%3d,%3d] = %20.16e not zero"
+                                % (i, j, k, l, coulomb_real[i, j, k, l])
+                            )
