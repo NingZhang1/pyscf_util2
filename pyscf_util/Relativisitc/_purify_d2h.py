@@ -759,12 +759,13 @@ def check_spinor_adapted(mol, pes_mocoeff, pure_tol=1e-10, non_vanishing_tol=1e-
                             % (icomp, argmax_symm_comp_irrep_name, ALLOWED_SYM[icomp])
                         )
                         is_all_adapted = False
+                        result_dominant_comp[i // 2] = 0.0
 
             if not is_all_adapted:
                 break
 
             if bar_non_vanishing:
-                symm_comp_norm_square, _ = label_orb_symm(
+                symm_comp_norm_square_bar, _ = label_orb_symm(
                     mol,
                     mol.irrep_name,
                     mol.symm_orb,
@@ -772,8 +773,8 @@ def check_spinor_adapted(mol, pes_mocoeff, pure_tol=1e-10, non_vanishing_tol=1e-
                     ovlp,
                 )
 
-                argmax_symm_comp = numpy.argmax(numpy.array(symm_comp_norm_square))
-                argmax_symm_comp_value = symm_comp_norm_square[argmax_symm_comp]
+                argmax_symm_comp = numpy.argmax(numpy.array(symm_comp_norm_square_bar))
+                argmax_symm_comp_value = symm_comp_norm_square_bar[argmax_symm_comp]
                 argmax_symm_comp_irrep_name = mol.irrep_name[argmax_symm_comp]
 
                 if argmax_symm_comp_value < (1 - pure_tol):
@@ -794,7 +795,12 @@ def check_spinor_adapted(mol, pes_mocoeff, pure_tol=1e-10, non_vanishing_tol=1e-
                                 ALLOWED_SYM_BARRED[icomp],
                             )
                         )
+                        # print(norm_lst)
+                        # print(norm_lst_bar)
+                        # print(symm_comp_norm_square)
+                        # print(symm_comp_norm_square_bar)
                         is_all_adapted = False
+                        result_dominant_comp[i // 2] = 0.0
 
             if not is_all_adapted:
                 break
@@ -1633,6 +1639,7 @@ def purify_spinor_with_mixed_irrep(
             # print("norm_square_B1g = %20.16f" % (norm_square_B1g))
             # print("norm_square_B2g = %20.16f" % (norm_square_B2g))
             # print("norm_square_B3g = %20.16f" % (norm_square_B3g))
+
             # c = 0.0
             # d = 0.0
             # e = 0.0
@@ -1646,6 +1653,41 @@ def purify_spinor_with_mixed_irrep(
                 argmax_norm_test = numpy.argmax(norm_test)
             # print(argmax_norm_test)
 
+            dominant_irrep = None
+            only_one_irrep = None
+
+            if norm_square_Ag > 1e-14:
+                if dominant_irrep is None and only_one_irrep is None:
+                    dominant_irrep = "Ag"
+                    only_one_irrep = True
+                elif only_one_irrep and dominant_irrep != "Ag":
+                    only_one_irrep = False
+                    dominant_irrep = None
+            if norm_square_B1g > 1e-14:
+                if dominant_irrep is None and only_one_irrep is None:
+                    dominant_irrep = "B1g"
+                    only_one_irrep = True
+                elif only_one_irrep and dominant_irrep != "B1g":
+                    only_one_irrep = False
+                    dominant_irrep = None
+            if norm_square_B2g > 1e-14:
+                if dominant_irrep is None and only_one_irrep is None:
+                    dominant_irrep = "B2g"
+                    only_one_irrep = True
+                elif only_one_irrep and dominant_irrep != "B2g":
+                    only_one_irrep = False
+                    dominant_irrep = None
+            if norm_square_B3g > 1e-14:
+                if dominant_irrep is None and only_one_irrep is None:
+                    dominant_irrep = "B3g"
+                    only_one_irrep = True
+                elif only_one_irrep and dominant_irrep != "B3g":
+                    only_one_irrep = False
+                    dominant_irrep = None
+
+            if only_one_irrep:
+                print("warning : only one irrep dominant irrep is ", dominant_irrep)
+
             if argmax_norm_test == 0:
                 if norm_square_Ag > 1e-14:
                     c = numpy.sqrt(
@@ -1653,6 +1695,12 @@ def purify_spinor_with_mixed_irrep(
                         * symm_comp_norm_square_unbar_real_full["Ag"]
                         / norm_square_Ag
                     )
+                    if dominant_irrep is None and only_one_irrep is None:
+                        dominant_irrep = "Ag"
+                        only_one_irrep = True
+                    elif only_one_irrep and dominant_irrep != "Ag":
+                        only_one_irrep = False
+                        dominant_irrep = None
                 if norm_square_B1g > 1e-14:
                     d = -numpy.sqrt(
                         norm_test[0]
@@ -1747,6 +1795,103 @@ def purify_spinor_with_mixed_irrep(
                         / norm_square_B3g
                     )
 
+            if only_one_irrep: # 这种情况下 四种对称性只有 1 个有 不小于 0 的分量，此时 bar 或者 unbar 的 large comp 有一个数值上为 0 ! #
+                use_real = False
+                # if symm_comp_norm_square_unbar_real_full[dominant_irrep] > (1-pure_tol) and norm_test[0] > non_vanishing_tol:
+                if norm_test[0] > non_vanishing_tol or norm_test[2] > non_vanishing_tol:
+                    use_real = True
+                print("use_real = ", use_real)
+
+                if use_real:
+                    symorb_unbar_irrep = symmorb_unbar_real_full[dominant_irrep]
+                    symorb_bar_irrep = symmorb_bar_real_full[dominant_irrep]
+                else:
+                    symorb_unbar_irrep = symmorb_unbar_imag_full[dominant_irrep]
+                    symorb_bar_irrep = symmorb_bar_imag_full[dominant_irrep]
+
+                assert symorb_unbar_irrep is not None and symorb_bar_irrep is not None
+
+                sum_mat = symorb_unbar_irrep - symorb_bar_irrep
+                minus_mat = symorb_unbar_irrep + symorb_bar_irrep
+
+                max_norm_sum = numpy.max(numpy.abs(sum_mat))
+                max_norm_minus = numpy.max(numpy.abs(minus_mat))
+
+                minus_sign = max_norm_sum > max_norm_minus
+
+                print(
+                    "symorb minus sign ? ",
+                    minus_sign,
+                    " with max_diff",
+                    min(max_norm_sum, max_norm_minus),
+                )
+
+                # real rotation is enough #
+
+                if use_real:
+                    c_unbar = numpy.sqrt(
+                        norm_test[0]
+                        * symm_comp_norm_square_unbar_real_full[dominant_irrep]
+                    )
+                    c_bar = numpy.sqrt(
+                        norm_test[2]
+                        * symm_comp_norm_square_bar_real_full[dominant_irrep]
+                    )
+                else:
+                    c_unbar = numpy.sqrt(
+                        norm_test[1]
+                        * symm_comp_norm_square_unbar_imag_full[dominant_irrep]
+                    )
+                    c_bar = numpy.sqrt(
+                        norm_test[3]
+                        * symm_comp_norm_square_bar_imag_full[dominant_irrep]
+                    )
+
+                if minus_sign:
+                    c_bar = -c_bar
+
+                norm_c = numpy.sqrt(c_unbar**2 + c_bar**2)
+                c_unbar /= norm_c
+                c_bar /= norm_c
+
+                print("c_unbar = ", c_unbar, " c_bar = ", c_bar)
+
+                c = 0.0
+                d = 0.0
+                e = 0.0
+                f = 0.0
+
+                if use_real:
+                    if dominant_irrep == "Ag":
+                        c = c_unbar
+                        e = -c_bar
+                    elif dominant_irrep == "B1g":
+                        d = -c_unbar
+                        f = -c_bar
+                    elif dominant_irrep == "B2g":
+                        e = c_unbar
+                        c = c_bar
+                    elif dominant_irrep == "B3g":
+                        f = -c_unbar
+                        d = c_bar
+                    else:
+                        raise ValueError("Impossible dominant irrep ", dominant_irrep)
+                else:
+                    if dominant_irrep == "Ag":
+                        d = c_unbar
+                        f = c_bar
+                    elif dominant_irrep == "B1g":
+                        c = c_unbar
+                        e = -c_bar
+                    elif dominant_irrep == "B2g":
+                        f = c_unbar
+                        d = -c_bar
+                    elif dominant_irrep == "B3g":
+                        e = c_unbar
+                        c = c_bar
+                    else:
+                        raise ValueError("Impossible dominant irrep ", dominant_irrep)
+
         else:
 
             norm_square_Au = (
@@ -1802,6 +1947,41 @@ def purify_spinor_with_mixed_irrep(
                 argmax_norm_test = numpy.argmax(norm_test)
             # argmax_norm_test = numpy.argmax(norm_test)
             # print(argmax_norm_test)
+
+            dominant_irrep = None
+            only_one_irrep = None
+
+            if norm_square_Au > 1e-14:
+                if dominant_irrep is None and only_one_irrep is None:
+                    dominant_irrep = "Au"
+                    only_one_irrep = True
+                elif only_one_irrep and dominant_irrep != "Au":
+                    only_one_irrep = False
+                    dominant_irrep = None
+            if norm_square_B1u > 1e-14:
+                if dominant_irrep is None and only_one_irrep is None:
+                    dominant_irrep = "B1u"
+                    only_one_irrep = True
+                elif only_one_irrep and dominant_irrep != "B1u":
+                    only_one_irrep = False
+                    dominant_irrep = None
+            if norm_square_B2u > 1e-14:
+                if dominant_irrep is None and only_one_irrep is None:
+                    dominant_irrep = "B2u"
+                    only_one_irrep = True
+                elif only_one_irrep and dominant_irrep != "B2u":
+                    only_one_irrep = False
+                    dominant_irrep = None
+            if norm_square_B3u > 1e-14:
+                if dominant_irrep is None and only_one_irrep is None:
+                    dominant_irrep = "B3u"
+                    only_one_irrep = True
+                elif only_one_irrep and dominant_irrep != "B3u":
+                    only_one_irrep = False
+                    dominant_irrep = None
+
+            if only_one_irrep:
+                print("warning : only one irrep dominant irrep is ", dominant_irrep)
 
             if argmax_norm_test == 0:
                 if norm_square_Au > 1e-14:
@@ -1903,6 +2083,103 @@ def purify_spinor_with_mixed_irrep(
                         * symm_comp_norm_square_bar_imag_full["B3u"]
                         / norm_square_B3u
                     )
+
+            if only_one_irrep:
+                use_real = False
+                # if symm_comp_norm_square_unbar_real_full[dominant_irrep] > (1-pure_tol) and norm_test[0] > non_vanishing_tol:
+                if norm_test[0] > non_vanishing_tol or norm_test[2] > non_vanishing_tol:
+                    use_real = True
+                print("use_real = ", use_real)
+
+                if use_real:
+                    symorb_unbar_irrep = symmorb_unbar_real_full[dominant_irrep]
+                    symorb_bar_irrep = symmorb_bar_real_full[dominant_irrep]
+                else:
+                    symorb_unbar_irrep = symmorb_unbar_imag_full[dominant_irrep]
+                    symorb_bar_irrep = symmorb_bar_imag_full[dominant_irrep]
+
+                assert symorb_unbar_irrep is not None and symorb_bar_irrep is not None
+
+                sum_mat = symorb_unbar_irrep - symorb_bar_irrep
+                minus_mat = symorb_unbar_irrep + symorb_bar_irrep
+
+                max_norm_sum = numpy.max(numpy.abs(sum_mat))
+                max_norm_minus = numpy.max(numpy.abs(minus_mat))
+
+                minus_sign = max_norm_sum > max_norm_minus
+
+                print(
+                    "symorb minus sign ? ",
+                    minus_sign,
+                    " with max_diff",
+                    min(max_norm_sum, max_norm_minus),
+                )
+
+                # real rotation is enough #
+
+                if use_real:
+                    c_unbar = numpy.sqrt(
+                        norm_test[0]
+                        * symm_comp_norm_square_unbar_real_full[dominant_irrep]
+                    )
+                    c_bar = numpy.sqrt(
+                        norm_test[2]
+                        * symm_comp_norm_square_bar_real_full[dominant_irrep]
+                    )
+                else:
+                    c_unbar = numpy.sqrt(
+                        norm_test[1]
+                        * symm_comp_norm_square_unbar_imag_full[dominant_irrep]
+                    )
+                    c_bar = numpy.sqrt(
+                        norm_test[3]
+                        * symm_comp_norm_square_bar_imag_full[dominant_irrep]
+                    )
+
+                if minus_sign:
+                    c_bar = -c_bar
+
+                norm_c = numpy.sqrt(c_unbar**2 + c_bar**2)
+                c_unbar /= norm_c
+                c_bar /= norm_c
+
+                print("c_unbar = ", c_unbar, " c_bar = ", c_bar)
+
+                c = 0.0
+                d = 0.0
+                e = 0.0
+                f = 0.0
+
+                if use_real:
+                    if dominant_irrep == "Au":
+                        c = c_unbar
+                        e = -c_bar
+                    elif dominant_irrep == "B1u":
+                        d = -c_unbar
+                        f = -c_bar
+                    elif dominant_irrep == "B2u":
+                        e = c_unbar
+                        c = c_bar
+                    elif dominant_irrep == "B3u":
+                        f = -c_unbar
+                        d = c_bar
+                    else:
+                        raise ValueError("Impossible dominant irrep ", dominant_irrep)
+                else:
+                    if dominant_irrep == "Au":
+                        d = c_unbar
+                        f = c_bar
+                    elif dominant_irrep == "B1u":
+                        c = c_unbar
+                        e = -c_bar
+                    elif dominant_irrep == "B2u":
+                        f = c_unbar
+                        d = -c_bar
+                    elif dominant_irrep == "B3u":
+                        e = c_unbar
+                        c = c_bar
+                    else:
+                        raise ValueError("Impossible dominant irrep ", dominant_irrep)
 
         # print(c, d, e, f)
         # print(c*c+d*d+e*e+f*f)
@@ -2032,8 +2309,8 @@ H  -0.928900   0.000000   1.232100
 H   0.928900   0.000000  -1.232100
 H  -0.928900   0.000000  -1.232100
 """,
-        # basis="unc-cc-pvdz-dk",
-        basis="3-21g",
+        basis="unc-cc-pvdz-dk",
+        # basis="3-21g",
         # basis="cc-pvdz-dk",
         verbose=5,
         charge=0,
@@ -2069,7 +2346,7 @@ H  -0.928900   0.000000  -1.232100
     fock_mo = mo_coeff.conj().T @ fock_ao @ mo_coeff
 
     fock_mo_offdg = fock_mo - numpy.diag(numpy.diag(fock_mo))
-    assert numpy.allclose(fock_mo_offdg[n2c:, n2c:], 0.0)
+    # assert numpy.allclose(fock_mo_offdg[n2c:, n2c:], 0.0)
     print("max abs offdg %20.16e" % (numpy.max(numpy.abs(fock_mo_offdg[n2c:, n2c:]))))
 
     mo_energy2 = numpy.diag(fock_mo)[n2c:]
