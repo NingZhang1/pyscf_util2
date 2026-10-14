@@ -1806,9 +1806,9 @@ def warshall(A):
     return R
 
 
-def purify_pes_d2h_v2(mol, mf, vanish_tol=1e-10, align_tol=1e-5):  # much better ?
+def purify_pes_v2(mol, mf, vanish_tol=1e-10, align_tol=1e-5):  # much better ?
 
-    print("------------ purify_pes_d2h_v2 -------------")
+    print("------------ purify_pes_v2 -------------")
 
     pes_mocoeff = mf.mo_coeff[:, mol.nao_2c() :].copy()
 
@@ -1821,10 +1821,10 @@ def purify_pes_d2h_v2(mol, mf, vanish_tol=1e-10, align_tol=1e-5):  # much better
             "warning : hcore_mo_imag not close to zero, max = ",
             numpy.max(numpy.abs(hcore_mo_imag)),
         )
-        print(
-            "we cannot do the purification for d2h and its subgroup, since the hcore_mo is not real in pes space"
-        )
-        return pes_mocoeff
+        # print(
+        #     "we cannot do the purification for d2h and its subgroup, since the hcore_mo is not real in pes space"
+        # )
+        # return pes_mocoeff
     hcore_mo = hcore_mo[mol.nao_2c() :, mol.nao_2c() :].real
 
     n2c = mol.nao_2c()
@@ -1837,6 +1837,7 @@ def purify_pes_d2h_v2(mol, mf, vanish_tol=1e-10, align_tol=1e-5):  # much better
 
     for i in range(pes_mocoeff.shape[1] // 2):
         # for i in range(2):
+        print("do i ", i)
         for j in range(i + 1, pes_mocoeff.shape[1] // 2):
             a1 = hcore_mo[2 * i, 2 * j]
             b1 = hcore_mo[2 * i, 2 * j + 1]
@@ -1895,7 +1896,7 @@ def purify_pes_d2h_v2(mol, mf, vanish_tol=1e-10, align_tol=1e-5):  # much better
                         % (i, j, abs(b1))
                     )
 
-    print("------------ purify_pes_d2h_v2 done -------------")
+    print("------------ purify_pes_v2 done -------------")
 
     return pes_mocoeff
 
@@ -1939,7 +1940,7 @@ H  -0.928900   0.000000  -1.232100
     mf.conv_tol = 1e-12
     mf.kernel()
 
-    purify_pes_d2h_v2(mol, mf)
+    purify_pes_v2(mol, mf)
 
     hcore_ao = mf.get_hcore()
     hcore_mo = mf.mo_coeff.conj().T @ hcore_ao @ mf.mo_coeff
@@ -1954,8 +1955,18 @@ H  -0.928900   0.000000  -1.232100
                     )
     # exit(1)
 
-    # res = purify_pes_d2h(mol, mf, non_vanishing_tol=1e-12, max_iter=8)
-    res = purify_pes_d2h_v2(mol, mf)
+    res = purify_pes_d2h(mol, mf, non_vanishing_tol=1e-12, max_iter=8)
+    n2c = mol.nao_2c()
+    # mo_energy = mf.mo_energy[n2c:]
+    mo_coeff = mf.mo_coeff.copy()
+    mo_coeff[:, n2c:] = res
+    mf.mo_coeff = mo_coeff
+    # mf.mo_energy = mo_energy
+    res = purify_pes_v2(mol, mf)
+
+    check_spinor_adapted(mol, res)
+
+    # exit(1)
 
     # 检查轨道能是否出问题 #
 
