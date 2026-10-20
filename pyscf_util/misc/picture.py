@@ -88,9 +88,9 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
         ### do linear analysis ###
 
         if NLAST_REMOVE is None:
-            
+
             # linear #
-            
+
             _, linear_extra, _, linear_error = LinearRegression_EstimateError(
                 ept[-NEXTRA:], etot[-NEXTRA:]
             )
@@ -100,9 +100,9 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
                     ept[-NEXTRA:], etot[-NEXTRA:], False, True
                 )
             )
-            
+
             if len(ept) >= 3 and NEXTRA >= 3:
-                
+
                 # quad #
                 quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
                     ept[-NEXTRA:], etot[-NEXTRA:], False, False
@@ -119,9 +119,9 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
                         ept[-NEXTRA:], etot[-NEXTRA:], False, True
                     )
                 )
-            
+
             else:
-                
+
                 quadratic_extra, quadratic_error = 0.0, 0.0
                 weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
                     0.0,
@@ -153,9 +153,9 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
                     True,
                 )
             )
-            
+
             if len(ept) >= 3 and NEXTRA >= 3:
-                
+
                 # quad #
                 quadratic_extra, quadratic_error = quadratic_fit_estimate_error(
                     ept[-NLAST_REMOVE - NEXTRA : -NLAST_REMOVE],
@@ -183,7 +183,7 @@ def get_extra_res(ept, etot, NEXTRA=5, NLAST_REMOVE=None):  #
                 )
 
             else:
-                
+
                 quadratic_extra, quadratic_error = 0.0, 0.0
                 weighted_quadratic_extra, weighted_quadratic_error, a, b, c = (
                     0.0,
@@ -382,7 +382,7 @@ def draw_extra_pic(
             pade_c = data["pade_c"]
             weighted_pade_extra = data["weighted_pade_extra"]
             weighted_pade_error = data["weighted_pade_error"]
-            
+
             if not use_quadratic:
                 weighted_extra = data["weighted_linear_extra"]
                 weighted_error = data["weighted_linear_error"]
