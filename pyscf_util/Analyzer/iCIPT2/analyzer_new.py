@@ -8,6 +8,8 @@ import re
 from dataclasses import dataclass
 from tabulate import tabulate
 
+from pyscf_util.Analyzer.iCIPT2.enpt2_info import read_enpt2_info
+
 #### 判断是不是 iCI output file ####
 
 
@@ -74,104 +76,27 @@ def print_icipt2_data_table(data_list):
 
 
 def extract_icipt2_data_from_file(file_path: str):
-    with open(file_path, "r") as f:
-        lines = f.readlines()
+    """解析文件里所有 iCI_ENPT(2) 代码块。
 
-    blocks = []
-    in_block = False
-    current_block = []
+    返回 ``{(spintwo, symmetry, state): [iCIPT2_Data, ...]}``。同一文件里多个
+    代码块（不同迭代步）的数据会按相同键追加到同一列表；旧格式没有
+    spintwo/symmetry 列时对应键为 ``None``。
 
-    # -------- 提取 iCI_ENPT(2) block --------
-    for line in lines:
-        if "iCI_ENPT(2)_NonRela::Info" in line:
-            # 遇到新的标题行
-            if current_block:
-                blocks.append(current_block)
-            in_block = True
-            current_block = []
-            continue
-
-        if in_block:
-            # 遇到结束星号行，end block
-            if line.strip().startswith("***"):
-                blocks.append(current_block)
-                in_block = False
-                current_block = []
-                continue
-
-            current_block.append(line.rstrip("\n"))
-
-    # 最后一个 block
-    if in_block and current_block:
-        blocks.append(current_block)
-
-    # 供返回的最终结果，按 state 存储
-    # key: (spintwo, symmetry, state_index)
+    具体解析逻辑见 ``enpt2_info`` 模块（唯一实现）。
+    """
     results = {}
-
-    # 正则允许前四列缺失：
-    #    spintwo | symmetry | ncfg | ncsf | evar | ept | etot
-    pattern = re.compile(
-        r"^\s*(\d*)\s*\|\s*(\d*)\s*\|\s*(\d*)\s*\|\s*(\d*)\s*\|\s*([-+]?\d+\.\d+)\s*\|\s*([-+]?\d+\.\d+)\s*\|\s*([-+]?\d+\.\d+)"
-    )
-
-    for block in blocks:
-
-        # 找到 header 行位置（包含 evar, ept, etot）
-        header_index = None
-        for i, line in enumerate(block):
-            if "evar" in line and "ept" in line and "etot" in line:
-                header_index = i
-                break
-        if header_index is None:
-            continue
-
-        data_lines = block[header_index + 1 :]
-
-        state_index = 0
-        spintwo_last = None
-        symmetry_last = None
-        ncfg_last = None
-        ncsf_last = None
-
-        for line in data_lines:
-
-            m = pattern.search(line)
-            if not m:
-                continue
-
-            g = m.groups()
-
-            # 可能为空的字段（第二态以后）
-            spintwo = g[0] or spintwo_last
-            symmetry = g[1] or symmetry_last
-            ncfg = g[2] or ncfg_last
-            ncsf = g[3] or ncsf_last
-
-            # 始终存在
-            evar = float(g[4])
-            ept = float(g[5])
-            etot = float(g[6])
-
-            # 储存“上一个态”的完整字段，用于填补后续行缺失值
-            spintwo_last = spintwo
-            symmetry_last = symmetry
-            ncfg_last = ncfg
-            ncsf_last = ncsf
-
-            key = (int(spintwo), int(symmetry), state_index)
-
-            if key not in results:
-                results[key] = []
-
-            results[key].append(
+    for block in read_enpt2_info(file_path):
+        for state in block.states:
+            key = (state.spintwo, state.symmetry, state.state)
+            results.setdefault(key, []).append(
                 iCIPT2_Data(
-                    ncfg=int(ncfg), ncsf=int(ncsf), evar=evar, ept=ept, etot=etot
+                    ncfg=state.ncfg,
+                    ncsf=state.ncsf,
+                    evar=state.evar,
+                    ept=state.ept,
+                    etot=state.etot,
                 )
             )
-
-            state_index += 1
-
     return results
 
 
@@ -419,9 +344,19 @@ def print_icipt2_extra(data: Regression_Analysis):
 
 if __name__ == "__main__":
 
-    assert is_iCI_output("out.txt")
+    assert is_iCI_output("SO2_test.out")
 
-    blocks = extract_icipt2_data_from_file("out.txt")
+    blocks = extract_icipt2_data_from_file("SO2_test.out")
+
+    for key, data in blocks.items():
+        print("Analyzing state:", key)
+        data.sort()
+        res = extra_icipt2_data(data)
+        print_icipt2_extra(res)
+    
+    assert is_iCI_output("SO2_test.out")
+
+    blocks = extract_icipt2_data_from_file("C2_ccpvdz_180.out")
 
     for key, data in blocks.items():
         print("Analyzing state:", key)
