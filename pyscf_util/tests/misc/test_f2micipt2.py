@@ -161,3 +161,34 @@ Eig[   0]  :   -116.38405772
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestFe4S4Solver(unittest.TestCase):
+    def test_cli_and_model(self):
+        from pyscf_util.MeanField import f2micipt2_fe4s4 as fe4s4
+
+        solver = fe4s4.F2MiCIPT2Fe4S4Solver(
+            executable="/bin/true",
+            workdir="/tmp/fe4s4_test",
+            mode=3,
+            mx_spintwo=20,
+            mx_ligand_ext_level=2,
+            mx_ligand_spintwo=1,
+        )
+        self.assertEqual(solver.norb_model, 36)
+        self.assertEqual(solver.dm1_name, fe4s4.F2M_DM1_NAME)
+        self.assertEqual(solver.dm2_name, fe4s4.F2M_DM2_NAME)
+        cmd = solver._build_cmd("inp", "FCIDUMP")
+        self.assertEqual(
+            cmd, ["/bin/true", "inp", "FCIDUMP", "20", "3", "2", "1", "1"]
+        )
+
+        # 不 dump RDM 时最后一个参数是 0
+        solver.calc_rdm = False
+        self.assertEqual(solver._build_cmd("inp", "FCIDUMP")[-1], "0")
+
+    def test_invalid_mode(self):
+        from pyscf_util.MeanField import f2micipt2_fe4s4 as fe4s4
+
+        with self.assertRaises(ValueError):
+            fe4s4.F2MiCIPT2Fe4S4Solver(executable="/bin/true", mode=4)

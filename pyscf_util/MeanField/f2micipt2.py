@@ -324,6 +324,11 @@ class F2MiCIPT2Solver(lib.StreamObject):
         self.e_printed = None
         self.mol = None
 
+        # 模型相关的常量；子类 (例如 Fe4S4) 会覆盖它们
+        self.norb_model = F2M_NORB
+        self.dm1_name = F2M_DM1_NAME
+        self.dm2_name = F2M_DM2_NAME
+
         self._rdm1 = None
         self._rdm2 = None
         self._cached_key = None
@@ -433,11 +438,11 @@ class F2MiCIPT2Solver(lib.StreamObject):
             raise NotImplementedError(
                 "F2MiCIPT2Solver only supports a single state (nroots=1)"
             )
-        if norb != F2M_NORB:
+        if norb != self.norb_model:
             raise ValueError(
-                "F2M_iCIPT2_Fe2S2 is compiled for the %d-orbital [2Fe-2S] "
-                "model, but norb = %d was passed.  All %d fcidump orbitals "
-                "must be active." % (F2M_NORB, norb, F2M_NORB)
+                "%s is compiled for the %d-orbital model, but norb = %d "
+                "was passed.  All %d fcidump orbitals must be active."
+                % (self.__class__.__name__, self.norb_model, norb, self.norb_model)
             )
         if self.spin is not None and int(self.spin) != spintwo:
             raise ValueError(
@@ -460,7 +465,7 @@ class F2MiCIPT2Solver(lib.StreamObject):
             return e_tot, ci.copy()
 
         os.makedirs(self.workdir, exist_ok=True)
-        for fname in (F2M_DM1_NAME, F2M_DM2_NAME):
+        for fname in (self.dm1_name, self.dm2_name):
             fpath = os.path.join(self.workdir, fname)
             if os.path.isfile(fpath):
                 os.remove(fpath)
@@ -490,8 +495,8 @@ class F2MiCIPT2Solver(lib.StreamObject):
             dm1 = dm2 = None
             e_rdm = None
         else:
-            dm1_path = os.path.join(self.workdir, F2M_DM1_NAME)
-            dm2_path = os.path.join(self.workdir, F2M_DM2_NAME)
+            dm1_path = os.path.join(self.workdir, self.dm1_name)
+            dm2_path = os.path.join(self.workdir, self.dm2_name)
             if not (os.path.isfile(dm1_path) and os.path.isfile(dm2_path)):
                 raise RuntimeError(
                     "F2M_iCIPT2 did not dump the RDMs in %s" % self.workdir
@@ -606,6 +611,7 @@ def kernel(
     mc_conv_tol=1e-7,
     mc_max_macro=32,
     run_mcscf=True,
+    solver=None,
     verbose=None,
 ):
     """MCSCF driver: FCIDUMP -> PySCF CASSCF，CI solver 用 F2M_iCIPT2。
@@ -650,7 +656,7 @@ def kernel(
 
     if ncas != norb:
         raise ValueError(
-            "F2M_iCIPT2_Fe2S2 requires all %d fcidump orbitals to be active "
+            "F2M_iCIPT2 requires all %d fcidump orbitals to be active "
             "(ncas = %d was requested).  Its local-orbital structure and "
             "ref_occ are hard-coded for the full model."
             % (norb, ncas)
@@ -660,10 +666,11 @@ def kernel(
             "active_orbs is not supported: F2M_iCIPT2 requires the original "
             "fcidump orbital order."
         )
-    if norb != F2M_NORB:
+    norb_model = solver.norb_model if solver is not None else F2M_NORB
+    if norb != norb_model:
         raise ValueError(
-            "F2M_iCIPT2_Fe2S2 is compiled for %d orbitals, this fcidump has %d"
-            % (F2M_NORB, norb)
+            "F2M_iCIPT2 for this model is compiled for %d orbitals, "
+            "this fcidump has %d" % (norb_model, norb)
         )
     if run_mcscf and not calc_rdm:
         raise ValueError(
@@ -691,22 +698,23 @@ def kernel(
     mo_init = numpy.eye(norb)
     mc.mo_coeff = mo_init
 
-    solver = F2MiCIPT2Solver(
-        executable=executable,
-        workdir=workdir,
-        spin=spin,
-        nroots=1,
-        cmin=cmin,
-        etol=etol,
-        mx_spintwo=mx_spintwo,
-        mx_ext_level=mx_ext_level,
-        nsegment=nsegment,
-        nvalelec=nvalelec,
-        calc_rdm=calc_rdm,
-        energy_source=energy_source,
-        omp_num_threads=omp_num_threads,
-        verbose=verbose,
-    )
+    if solver is None:
+        solver = F2MiCIPT2Solver(
+            executable=executable,
+            workdir=workdir,
+            spin=spin,
+            nroots=1,
+            cmin=cmin,
+            etol=etol,
+            mx_spintwo=mx_spintwo,
+            mx_ext_level=mx_ext_level,
+            nsegment=nsegment,
+            nvalelec=nvalelec,
+            calc_rdm=calc_rdm,
+            energy_source=energy_source,
+            omp_num_threads=omp_num_threads,
+            verbose=verbose,
+        )
     mc.fcisolver = solver
 
     mc.conv_tol = mc_conv_tol
