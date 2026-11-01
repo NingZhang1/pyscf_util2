@@ -690,13 +690,14 @@ def kernel(
         nelecas=nelecas,
         active_orbs=None,
         mc_type="casscf",
-        verbose=0,
+        verbose=verbose,
     )
 
     # 关键: 保持 FCIDUMP 的轨道基。FCIDUMP 的轨道本身正交，
     # 单位矩阵就是最自然的 mo_coeff。
     mo_init = numpy.eye(norb)
     mc.mo_coeff = mo_init
+    mc.internal_rotation = True
 
     if solver is None:
         solver = F2MiCIPT2Solver(
@@ -767,5 +768,8 @@ if __name__ == "__main__":
                 % fcidump
             )
 
-    mc = kernel(fcidump, cmin=1e-2, etol=1e-6, verbose=4)
+    mc = kernel(fcidump, cmin=1e-3, etol=1e-6, verbose=4, mc_max_macro=16, mx_ext_level=2)
     print("E = ", mc.e_tot)
+
+    print(mc.mo_coeff)
+    print(numpy.diag(mc.mo_coeff))
