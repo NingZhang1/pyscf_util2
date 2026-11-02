@@ -201,6 +201,5 @@ if __name__ == "__main__":
                 % fcidump
             )
 
-    mc = kernel(fcidump, cmin=1e-1, etol=1e-4, mode=1, verbose=4,
-                print_summary=True)
+    mc = kernel(fcidump, cmin=1e-1, etol=1e-4, mode=1, verbose=4, print_summary=True)
     print("E = ", mc.e_tot)

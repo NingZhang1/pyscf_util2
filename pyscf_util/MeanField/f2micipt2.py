@@ -93,12 +93,12 @@ nstates={nstates}
 """
 
 # 解析 stdout 中的 CI 能量:  "Eig[   0]  :   -116.47094408"
-_ENERGY_PATTERN = re.compile(
-    r"Eig\[\s*(\d+)\s*\]\s*:\s*(-?\d+\.\d+(?:[eE][-+]?\d+)?)"
-)
+_ENERGY_PATTERN = re.compile(r"Eig\[\s*(\d+)\s*\]\s*:\s*(-?\d+\.\d+(?:[eE][-+]?\d+)?)")
 
 
-def _locate_executable(exe_env="F2M_ICIPT2_FE2S2", exe_name="F2M_iCIPT2_Fe2S2.exe", model_tag="Fe2S2"):
+def _locate_executable(
+    exe_env="F2M_ICIPT2_FE2S2", exe_name="F2M_iCIPT2_Fe2S2.exe", model_tag="Fe2S2"
+):
     """找到 F2M_iCIPT2 可执行文件。"""
     for var in (exe_env, "F2M_ICIPT2"):
         exe = os.environ.get(var)
@@ -162,9 +162,7 @@ def _read_csv_blocks(filename):
                 continue
             cols = line.split(",")
             if len(cols) != ncol:
-                raise ValueError(
-                    "Bad line in %s: %s" % (filename, line)
-                )
+                raise ValueError("Bad line in %s: %s" % (filename, line))
             rows.append(tuple(cols))
     return has_state, rows
 
@@ -279,7 +277,9 @@ def parse_local_states(text):
     return blocks
 
 
-def plot_matrix_heatmap(matrix, filename, title="", xlabel="MO index", ylabel="basis index", cmap="RdBu_r"):
+def plot_matrix_heatmap(
+    matrix, filename, title="", xlabel="MO index", ylabel="basis index", cmap="RdBu_r"
+):
     """把矩阵画成热图并保存为图片 (需要 matplotlib)。
 
     Parameters
@@ -337,9 +337,7 @@ def parse_important_csfs(text):
         if m is None:
             continue
         label = line[: m.start()].strip()
-        csfs.append(
-            dict(label=label, coef=float(m.group(1)), weight=float(m.group(2)))
-        )
+        csfs.append(dict(label=label, coef=float(m.group(1)), weight=float(m.group(2))))
     return csfs
 
 
@@ -451,12 +449,16 @@ class F2MiCIPT2Solver(lib.StreamObject):
         if executable is None:
             executable = _locate_executable(self.exe_env, self.exe_name, self.model_tag)
         self.executable = executable
-        self.workdir = os.path.abspath(workdir if workdir is not None else "f2m_icipt2_work")
+        self.workdir = os.path.abspath(
+            workdir if workdir is not None else "f2m_icipt2_work"
+        )
         self.spin = spin
         self.nroots = nroots
         self.cmin = cmin
         self.etol = etol
-        self.mx_spintwo = self.default_mx_spintwo if mx_spintwo is None else int(mx_spintwo)
+        self.mx_spintwo = (
+            self.default_mx_spintwo if mx_spintwo is None else int(mx_spintwo)
+        )
         self.mode = int(mode)
         self.mx_ligand_ext_level = int(mx_ligand_ext_level)
         self.mx_ligand_spintwo = int(mx_ligand_spintwo)
@@ -478,10 +480,10 @@ class F2MiCIPT2Solver(lib.StreamObject):
         self.mol = None
 
         # 诊断信息
-        self.history = []      # 每次真正运行 F2M_iCIPT2 的记录
+        self.history = []  # 每次真正运行 F2M_iCIPT2 的记录
         self.last_output = None  # 最后一次运行的 stdout
-        self.mc = None         # 由 driver 设置，供 print_summary 使用
-        self.mc_history = []   # 宏迭代历史
+        self.mc = None  # 由 driver 设置，供 print_summary 使用
+        self.mc_history = []  # 宏迭代历史
 
         self._rdm1 = None
         self._rdm2 = None
@@ -510,7 +512,10 @@ class F2MiCIPT2Solver(lib.StreamObject):
         log.info("mx_ligand_spin  = %d", self.mx_ligand_spintwo)
         log.info("nsegment        = %s", self.nsegment)
         log.info("energy source   = %s", self.energy_source)
-        log.info("OMP_NUM_THREADS = %s", self.omp_num_threads if self.omp_num_threads is not None else "(inherited)")
+        log.info(
+            "OMP_NUM_THREADS = %s",
+            self.omp_num_threads if self.omp_num_threads is not None else "(inherited)",
+        )
         log.info("")
         return self
 
@@ -556,8 +561,12 @@ class F2MiCIPT2Solver(lib.StreamObject):
         if self.omp_num_threads is not None:
             env["OMP_NUM_THREADS"] = str(int(self.omp_num_threads))
 
-        logfile = os.path.join(self.workdir, "f2m_icipt2_%s.out" % self.model_name.lower())
-        errfile = os.path.join(self.workdir, "f2m_icipt2_%s.err" % self.model_name.lower())
+        logfile = os.path.join(
+            self.workdir, "f2m_icipt2_%s.out" % self.model_name.lower()
+        )
+        errfile = os.path.join(
+            self.workdir, "f2m_icipt2_%s.err" % self.model_name.lower()
+        )
         with open(logfile, "w") as out, open(errfile, "w") as err:
             proc = subprocess.run(
                 cmd, cwd=self.workdir, env=env, stdout=out, stderr=err
@@ -669,8 +678,7 @@ class F2MiCIPT2Solver(lib.StreamObject):
                 err = abs(dm1_from_2 - dm1).max()
                 if err > 1e-6:
                     raise RuntimeError(
-                        "Inconsistent 1-/2-RDM from F2M_iCIPT2 (err = %.3e)"
-                        % err
+                        "Inconsistent 1-/2-RDM from F2M_iCIPT2 (err = %.3e)" % err
                     )
 
             e_rdm = rdm_energy(h1e, eri, dm1, dm2, ecore)
@@ -731,8 +739,7 @@ class F2MiCIPT2Solver(lib.StreamObject):
             )
             for c in csfs[: self.n_top_csf]:
                 print(
-                    "    %s   % .6f (%6.2f%%)"
-                    % (c["label"], c["coef"], c["weight"]),
+                    "    %s   % .6f (%6.2f%%)" % (c["label"], c["coef"], c["weight"]),
                     flush=True,
                 )
 
@@ -822,7 +829,6 @@ class F2MiCIPT2Solver(lib.StreamObject):
         )
         stream.flush()
 
-
     def print_summary(self, mc=None, stream=None):
         """打印 MCSCF 迭代过程、最后一次 CI 调用的局域态/重要组态和能量。
 
@@ -852,7 +858,10 @@ class F2MiCIPT2Solver(lib.StreamObject):
         w(" norb            : %d" % self.norb_model)
         w(" mode            : %d" % self.mode)
         w(" mx_spintwo      : %d" % self.mx_spintwo)
-        w(" ligand ext/spin : %d / %d" % (self.mx_ligand_ext_level, self.mx_ligand_spintwo))
+        w(
+            " ligand ext/spin : %d / %d"
+            % (self.mx_ligand_ext_level, self.mx_ligand_spintwo)
+        )
         w(" energy source   : %s" % self.energy_source)
         w(" binary calls    : %d" % len(self.history))
         if mc is not None:
@@ -881,7 +890,10 @@ class F2MiCIPT2Solver(lib.StreamObject):
 
         if self.history:
             w(" CI solver calls (binary runs):")
-            w("   %-3s %-21s %-21s %-7s %s" % ("#", "E(printed)", "E(rdm)", "ncsf", "cmin"))
+            w(
+                "   %-3s %-21s %-21s %-7s %s"
+                % ("#", "E(printed)", "E(rdm)", "ncsf", "cmin")
+            )
             for h in self.history:
                 e_rdm = "%.12f" % h["e_rdm"] if h["e_rdm"] is not None else "N/A"
                 w(
@@ -898,7 +910,10 @@ class F2MiCIPT2Solver(lib.StreamObject):
 
         if self.mc_history:
             w(" MCSCF macro iterations:")
-            w("   %-5s %-21s %-12s %-12s %-12s" % ("macro", "e_tot", "dE", "|g_orb|", "|ddm|"))
+            w(
+                "   %-5s %-21s %-12s %-12s %-12s"
+                % ("macro", "e_tot", "dE", "|g_orb|", "|ddm|")
+            )
             for h in self.mc_history:
                 w(
                     "   %-5s %-21s %-12s %-12s %-12s"
@@ -906,8 +921,16 @@ class F2MiCIPT2Solver(lib.StreamObject):
                         str(h.get("imacro")),
                         "%.12f" % h["e_tot"] if h.get("e_tot") is not None else "N/A",
                         "%.3e" % h["de"] if h.get("de") is not None else "N/A",
-                        "%.3e" % h["norm_gorb0"] if h.get("norm_gorb0") is not None else "N/A",
-                        "%.3e" % h["norm_ddm"] if h.get("norm_ddm") is not None else "N/A",
+                        (
+                            "%.3e" % h["norm_gorb0"]
+                            if h.get("norm_gorb0") is not None
+                            else "N/A"
+                        ),
+                        (
+                            "%.3e" % h["norm_ddm"]
+                            if h.get("norm_ddm") is not None
+                            else "N/A"
+                        ),
                     )
                 )
             w("")
@@ -987,14 +1010,14 @@ def kernel(
     mx_spintwo=None,
     mode=1,
     mx_ligand_ext_level=1,
-    mx_ligand_spintwo=1,
+    mx_ligand_spintwo=3,  # 不限制
     nsegment=None,
     nvalelec=2,
     calc_rdm=True,
     energy_source="rdm",
     omp_num_threads=None,
     print_ci_each_call=True,
-    n_top_csf=3,
+    n_top_csf=5,
     mc_conv_tol=1e-7,
     mc_max_macro=32,
     run_mcscf=True,
@@ -1059,8 +1082,7 @@ def kernel(
         raise ValueError(
             "F2M_iCIPT2 requires all %d fcidump orbitals to be active "
             "(ncas = %d was requested).  Its local-orbital structure and "
-            "ref_occ are hard-coded for the full model."
-            % (norb, ncas)
+            "ref_occ are hard-coded for the full model." % (norb, ncas)
         )
     if active_orbs is not None:
         raise ValueError(
@@ -1074,16 +1096,19 @@ def kernel(
             "this fcidump has %d" % (norb_model, norb)
         )
     if run_mcscf and not calc_rdm:
-        raise ValueError(
-            "MCSCF needs the RDMs of the CI solver; set calc_rdm=True."
-        )
+        raise ValueError("MCSCF needs the RDMs of the CI solver; set calc_rdm=True.")
 
     log = logger.new_logger(None, verbose)
     log.info("")
     log.info("******** MCSCF with F2M_iCIPT2 solver ********")
     log.info("fcidump = %s", fcidump)
-    log.info("norb    = %d, nel = %d, ncas = %d, nelecas = %s",
-             norb, nelec_fcidump, ncas, str(nelecas))
+    log.info(
+        "norb    = %d, nel = %d, ncas = %d, nelecas = %s",
+        norb,
+        nelec_fcidump,
+        ncas,
+        str(nelecas),
+    )
 
     mol, mf, mc = setup_mcscf_from_fcidump(
         fcidump,
@@ -1098,6 +1123,7 @@ def kernel(
     # 单位矩阵就是最自然的 mo_coeff。
     mo_init = numpy.eye(norb)
     mc.mo_coeff = mo_init
+    mc.internal_rotation = True
 
     if solver is None:
         solver = F2MiCIPT2Solver(
@@ -1213,6 +1239,8 @@ if __name__ == "__main__":
                 % fcidump
             )
 
-    mc = kernel(fcidump, cmin=1e-1, etol=1e-4, mode=1, verbose=4,
-                print_summary=True)
+    mc = kernel(fcidump, cmin=1e-1, etol=1e-4, mode=1, verbose=4, print_summary=True)
     print("E = ", mc.e_tot)
+
+    print(mc.mo_coeff)
+    print(numpy.diag(mc.mo_coeff))
