@@ -49,6 +49,7 @@ def setup_mcscf_from_fcidump(
     mf = tools.fcidump.to_scf(fcidump_file, molpro_orbsym=molpro_orbsym)
     mf.verbose = verbose
     mol = mf.mol
+    mol.verbose = verbose
 
     # ---- 2. 不迭代 SCF：只调用一次 kernel 构造信息 ----
     # init_guess='1e'：避免空基组 mol 下 'minao' 等 guess 报错

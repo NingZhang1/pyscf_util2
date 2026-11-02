@@ -96,8 +96,9 @@ def main():
         mx_ligand_ext_level=MX_LIGAND_EXT_LEVEL,
         mx_ligand_spintwo=MX_LIGAND_SPINTWO,
         mc_conv_tol=1e-7,
-        mc_max_macro=32,
+        mc_max_macro=8,  # 示例只跑 8 个 macro；收敛通常需要更多
         run_mcscf=True,  # False: 只做一次 CASCI
+        print_summary=True,
         verbose=4,
     )
 

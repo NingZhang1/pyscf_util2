@@ -192,3 +192,96 @@ class TestFe4S4Solver(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             fe4s4.F2MiCIPT2Fe4S4Solver(executable="/bin/true", mode=4)
+
+
+class TestFe2S2SolverCLI(unittest.TestCase):
+    def test_defaults_and_cli(self):
+        from pyscf_util.MeanField import f2micipt2
+
+        solver = f2micipt2.F2MiCIPT2Solver(executable="/bin/true", workdir="/tmp/x")
+        self.assertEqual(solver.norb_model, 20)
+        self.assertEqual(solver.mx_spintwo, 10)  # 模型默认值
+        self.assertEqual(solver.dm1_name, "fe2s2_dm1.csv")
+        cmd = solver._build_cmd("inp", "FCIDUMP")
+        self.assertEqual(
+            cmd, ["/bin/true", "inp", "FCIDUMP", "10", "1", "1", "1", "1"]
+        )
+
+        solver = f2micipt2.F2MiCIPT2Solver(
+            executable="/bin/true",
+            workdir="/tmp/x",
+            mx_spintwo=6,
+            mode=3,
+            mx_ligand_ext_level=6,
+            mx_ligand_spintwo=3,
+            calc_rdm=False,
+        )
+        cmd = solver._build_cmd("inp", "FCIDUMP")
+        self.assertEqual(
+            cmd, ["/bin/true", "inp", "FCIDUMP", "6", "3", "6", "3", "0"]
+        )
+
+
+class TestSummaryParsers(unittest.TestCase):
+    LOG = """\
+-------------------------------------------
+PrimitiveLocalStateLoopUpTable
+block_id         : 0
+start_orb_indx   : 0
+norb             : 1
+mx_spintwo       : 20
+mx_nopen         : 5
+local state info : 
+    nelec : 2, spintwo : 0, nopen : 0
+        n_local_state                 : 1
+        primitive_local_states_offset : 0
+    nelec : 1, spintwo : 1, nopen : 1
+        n_local_state                 : 1
+        primitive_local_states_offset : 1
+
+-------------------------------------------
+PrimitiveLocalStateLoopUpTable
+block_id         : 1
+start_orb_indx   : 1
+norb             : 3
+local state info : 
+    nelec : 6, spintwo : 0, nopen : 0
+        n_local_state                 : 1
+    nelec : 5, spintwo : 1, nopen : 1
+        n_local_state                 : 3
+
+*************** Begin PRINT BLOCK CSF SPACE ***************
+
+spintwo    = 0
+nstates    = 1
+ncsf       = 10
+*********** state  0 ***********
+Important block csf:
+(   1,  0)(   1,  0)     -0.9 (  90.0%)
+
+*************** End PRINT BLOCK CSF SPACE ***************
+"""
+
+    def test_parse_local_states(self):
+        from pyscf_util.MeanField import f2micipt2
+
+        blocks = f2micipt2.parse_local_states(self.LOG)
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(blocks[0]["block"], 0)
+        self.assertEqual(blocks[0]["norb"], 1)
+        self.assertEqual(
+            blocks[0]["states"], [(2, 0, 0, 1), (1, 1, 1, 1)]
+        )
+        self.assertEqual(blocks[1]["block"], 1)
+        self.assertEqual(blocks[1]["norb"], 3)
+        self.assertEqual(
+            blocks[1]["states"], [(6, 0, 0, 1), (5, 1, 1, 3)]
+        )
+
+    def test_extract_important_csf(self):
+        from pyscf_util.MeanField import f2micipt2
+
+        text = f2micipt2.extract_important_csf(self.LOG)
+        self.assertIn("ncsf       = 10", text)
+        self.assertIn("Important block csf", text)
+        self.assertNotIn("End PRINT", text)
