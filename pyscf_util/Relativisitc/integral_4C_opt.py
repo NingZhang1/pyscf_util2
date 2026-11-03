@@ -241,9 +241,7 @@ def _build_breit_outcore(mol, mo_L, mo_S, terms, prefix, verbose):
     for tag, intor, aosym in terms:
         path = "%s_breit_%s.h5" % (prefix, tag)
         t = time.time()
-        _transform_to_file(
-            mol, _BREIT_COEFF_SETS[tag](mo_L, mo_S), intor, aosym, path
-        )
+        _transform_to_file(mol, _BREIT_COEFF_SETS[tag](mo_L, mo_S), intor, aosym, path)
         paths[tag] = path
         _log(verbose, "    %-4s (%s) %6.2fs" % (tag, aosym, time.time() - t))
     return paths
@@ -624,9 +622,7 @@ def FCIDUMP_Rela4C_opt(
     try:
         if mode == "incore":
             _log(verbose, "  Coulomb transform ...")
-            int2e_coulomb = _build_coulomb_incore(
-                mol, mo_L, mo_S, c1, workdir, verbose
-            )
+            int2e_coulomb = _build_coulomb_incore(mol, mo_L, mo_S, c1, workdir, verbose)
             if with_breit or with_gaunt:
                 terms = _BREIT_TERMS if with_breit else _GAUNT_TERMS
                 _log(verbose, "  Breit/Gaunt transform ...")
@@ -716,6 +712,81 @@ def FCIDUMP_Rela4C_opt(
     return None, None
 
 
+def FCIDUMP_Rela4C_SU2_opt(
+    mol,
+    my_RDHF,
+    with_breit=False,
+    npes=None,
+    filename="fcidump",
+    mode="incore",
+    debug=False,
+    no_2e=False,
+    with_nes=False,
+):
+
+    from pyscf_util.Relativisitc.double_group import (
+        _atom_Jz_adapted,
+        atm_d2h_symmetry_adapt_mo_coeff,
+        _atom_spinor_spatial_parity,
+    )
+
+    ######## adapt the molecular orbitals to the Jz symmetry and tr symmetry ########
+
+    mo_coeff = _atom_Jz_adapted(mol, my_RDHF.mo_coeff, my_RDHF.mo_energy, debug=debug)
+    mo_pes = atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, debug=debug)
+    mo_nes = atm_d2h_symmetry_adapt_mo_coeff(mol, mo_coeff, True, debug=debug)
+    n2c = mol.nao_2c()
+    mo_coeff[:, n2c:] = mo_pes
+    mo_coeff[:, :n2c] = mo_nes
+
+    mo_parity = _atom_spinor_spatial_parity(mol, mo_coeff, debug=debug)
+
+    # print("size of mo_parity = ", len(mo_parity))
+    # exit(1)
+
+    if debug:
+        print("mo_parity = ", mo_parity)
+    mo_parity = [x for id, x in enumerate(mo_parity) if id % 2 == 0]
+    if debug:
+        print("mo_parity = ", mo_parity)
+
+    my_RDHF.mo_coeff = mo_coeff
+
+    if npes is None:
+        npes = n2c
+
+    coulomb, breit = FCIDUMP_Rela4C_opt(
+        mol,
+        my_RDHF,
+        with_breit=with_breit,
+        npes=npes,
+        filename=filename,
+        mode=mode,
+        orbsym_ID=mo_parity,
+        IsComplex=False,
+        debug=debug,
+        no_2e=no_2e,
+        with_nes=with_nes,
+    )
+
+    if debug:
+        FCIDUMP_Rela4C_opt(
+            mol,
+            my_RDHF,
+            with_breit=with_breit,
+            filename=filename + "_complex",
+            mode=mode,
+            orbsym_ID=None,
+            IsComplex=True,
+            debug=debug,
+            no_2e=no_2e,
+            npes=npes,
+            with_nes=with_nes,
+        )
+
+    return coulomb, breit, mo_parity, mo_coeff
+
+
 if __name__ == "__main__":
     from pyscf import gto, scf
 
@@ -735,7 +806,12 @@ if __name__ == "__main__":
 
     t = time.time()
     FCIDUMP_Rela4C_opt(
-        mol, mf, with_breit=True, npes=20,
-        filename="/tmp/FCIDUMP_4C_opt_demo", mode="incore", verbose=1,
+        mol,
+        mf,
+        with_breit=True,
+        npes=20,
+        filename="/tmp/FCIDUMP_4C_opt_demo",
+        mode="incore",
+        verbose=1,
     )
     print("incore demo %.2fs" % (time.time() - t))

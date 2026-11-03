@@ -4,6 +4,9 @@ from pyscf import gto, scf
 from pyscf_util.Relativisitc.integral_4C import (
     FCIDUMP_Rela4C_SU2,
 )
+from pyscf_util.Relativisitc.integral_4C_opt import (
+    FCIDUMP_Rela4C_SU2_opt,
+)
 
 mol = gto.M(
     atom="F 0 0 0",
@@ -52,8 +55,15 @@ mf.kernel()
 
 FCIDUMP_NAME = "FCIDUMP_F"
 FCIDUMP_Rela4C_SU2(
-    mol, mf, True, filename=FCIDUMP_NAME, mode="outcore", debug=True, npes=18
+    mol,
+    mf,
+    True,
+    filename=FCIDUMP_NAME,
+    mode="outcore",
+    # debug=True, npes=18
 )
+
+FCIDUMP_Rela4C_SU2_opt(mol, mf, True, filename=FCIDUMP_NAME + "_OPT", mode="outcore")
 
 mol = gto.M(
     atom="F 0 0 0",

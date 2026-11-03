@@ -136,8 +136,7 @@ def compare(report, ref, new, label):
         default=0.0,
     )
     h1_ok = set(h1_ref) == set(h1_new) and (
-        not h1_ref
-        or max(abs(h1_ref[k] - h1_new[k]) for k in h1_ref) <= 1e-12
+        not h1_ref or max(abs(h1_ref[k] - h1_new[k]) for k in h1_ref) <= 1e-12
     )
     report.check(
         "%s 记录集合一致" % label,
@@ -183,7 +182,9 @@ def main(basis):
 
     print("=" * 88)
     print("四分量积分导出：旧版 vs 优化版")
-    print("  H2O / %s, nao_2c = %d, npes = %d, Breit = on" % (basis, mol.nao_2c(), npes))
+    print(
+        "  H2O / %s, nao_2c = %d, npes = %d, Breit = on" % (basis, mol.nao_2c(), npes)
+    )
     print("=" * 88)
 
     tmpdir = tempfile.mkdtemp(prefix="rela4c_opt_example_")
@@ -201,20 +202,32 @@ def main(basis):
                 new_file = os.path.join(tmpdir, "new_" + tag + ".txt")
                 t = time.time()
                 old_mod.FCIDUMP_Rela4C(
-                    mol, mf, with_breit=with_breit, npes=npes, filename=ref_file,
-                    mode=mode, IsComplex=True,
+                    mol,
+                    mf,
+                    with_breit=with_breit,
+                    npes=npes,
+                    filename=ref_file,
+                    mode=mode,
+                    IsComplex=True,
                 )
                 t_old = time.time() - t
                 t = time.time()
                 opt_mod.FCIDUMP_Rela4C_opt(
-                    mol, mf, with_breit=with_breit, npes=npes, filename=new_file,
-                    mode=mode, IsComplex=True,
+                    mol,
+                    mf,
+                    with_breit=with_breit,
+                    npes=npes,
+                    filename=new_file,
+                    mode=mode,
+                    IsComplex=True,
                 )
                 t_new = time.time() - t
                 ref = parse_fcidump(ref_file)
                 new = parse_fcidump(new_file)
                 compare(report, ref, new, "%s Breit=%d" % (mode, int(with_breit)))
-                report.add("%s (Breit=%d)" % (mode, int(with_breit)), t_old, t_new, len(new[0]))
+                report.add(
+                    "%s (Breit=%d)" % (mode, int(with_breit)), t_old, t_new, len(new[0])
+                )
 
         # incore vs outcore consistency
         inc = parse_fcidump(os.path.join(tmpdir, "new_incore_breit1.txt"))

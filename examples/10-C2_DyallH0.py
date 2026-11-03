@@ -6,6 +6,8 @@ from pyscf import tools
 # from pyscf_util.iCIPT2.iCIPT2 import kernel
 import pyscf
 from pyscf_util.Integrals.integral_MRPT2 import get_generalized_fock
+from pyscf_util.Integrals.integral_MRPT2_incore_fast import fcidump_mrpt2_incore_fast
+from pyscf_util.Integrals.integral_MRPT2_opt import fcidump_mrpt2_incore_fast_opt
 from pyscf_util.MeanField.iciscf import iCI
 from pyscf_util.Integrals.integral_CASCI import dump_heff_casci
 from pyscf_util.iCIPT2.iCIPT2 import kernel
@@ -126,4 +128,14 @@ fcidump_gFock(
     # orb_ene,
     new_fock,
     _filename="FCIDUMP_gFock_C2",
+)
+
+### dump mrpt2 ints ###
+
+fcidump_mrpt2_incore_fast(
+    mol, CASSCF_Driver, mo_coeff_new, 2, 8, mol.nao - 10, "FCIDUMP_MRPT2_C2"
+)
+
+fcidump_mrpt2_incore_fast_opt(
+    mol, CASSCF_Driver, mo_coeff_new, 2, 8, mol.nao - 10, "FCIDUMP_MRPT2_C2_OPT"
 )

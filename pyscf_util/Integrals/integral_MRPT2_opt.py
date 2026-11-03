@@ -139,9 +139,7 @@ def orbsym_ids(mol, mo_coeff):
     (``mol.irrep_name is None``), where the old code raised ``TypeError``.
     """
     if getattr(mol, "irrep_name", None):
-        orb_sym = pyscf.symm.label_orb_symm(
-            mol, mol.irrep_name, mol.symm_orb, mo_coeff
-        )
+        orb_sym = pyscf.symm.label_orb_symm(mol, mol.irrep_name, mol.symm_orb, mo_coeff)
         return [pyscf.symm.irrep_name2id(mol.groupname, x) for x in orb_sym]
     return [1] * mo_coeff.shape[1]
 
@@ -431,9 +429,7 @@ def _generate_eri_pprs_prps(mol, mo_coeff, ao_block_size=64, verbose=0):
         k0, k1 = ao_loc[ks], ao_loc[ke]
         l0, l1 = ao_loc[ls], ao_loc[le]
         nk, nl = k1 - k0, l1 - l0
-        blk = mol.intor(
-            "int2e", shls_slice=(0, nbas, 0, nbas, ks, ke, ls, le)
-        )
+        blk = mol.intor("int2e", shls_slice=(0, nbas, 0, nbas, ks, ke, ls, le))
         pp = lib.ddot(
             pair.T, np.ascontiguousarray(blk).reshape(nao * nao, nk * nl)
         ).reshape(nmo, nk, nl)
@@ -507,9 +503,7 @@ def fast_chunks(
         sizes = [int(t.shape[1]) for t in orb_sets]
         if not all(sizes):
             return
-        arr = np.asarray(
-            ao2mo.general(mol, orb_sets, aosym=aosym, compact=False)
-        )
+        arr = np.asarray(ao2mo.general(mol, orb_sets, aosym=aosym, compact=False))
         expected = (sizes[0] * sizes[1], sizes[2] * sizes[3])
         if arr.shape != expected:
             raise RuntimeError(
@@ -594,9 +588,7 @@ def _prepare(mol, scf, mo_coeff, nfzc, nact, nvir):
 
 
 def _write_tail(fout, h1e, nmo, nuc, tol):
-    tools.fcidump.write_hcore(
-        fout, h1e, nmo, tol=tol, float_format=FLOAT_FORMAT
-    )
+    tools.fcidump.write_hcore(fout, h1e, nmo, tol=tol, float_format=FLOAT_FORMAT)
     fout.write((FLOAT_FORMAT + "  0  0  0  0\n") % nuc)
 
 
@@ -656,7 +648,9 @@ def fcidump_mrpt2_opt(
     t0 = time.time()
     nmo, mo, h1e, nelec, nuc = _prepare(mol, scf, mo_coeff, nfzc, nact, nvir)
     orb_sym = orbsym_ids(mol, mo)
-    _log(verbose, "nmo=%d nfzc=%d nact=%d nvir=%d tol=%g" % (nmo, nfzc, nact, nvir, tol))
+    _log(
+        verbose, "nmo=%d nfzc=%d nact=%d nvir=%d tol=%g" % (nmo, nfzc, nact, nvir, tol)
+    )
 
     if verbose > 0:
         print("AO -> MO transformation ...")
@@ -668,11 +662,15 @@ def fcidump_mrpt2_opt(
 
     with open(filename, "w") as fout:
         tools.fcidump.write_head(fout, nmo, nelec, 0, orb_sym)
-        writer = write_ascii_chunks(fout, mask_chunks(nmo, nfzc, nact, tol, incore_lookup(int2e8)))
+        writer = write_ascii_chunks(
+            fout, mask_chunks(nmo, nfzc, nact, tol, incore_lookup(int2e8))
+        )
         _write_tail(fout, h1e, nmo, nuc, tol)
 
     stats = _stats(filename, writer, t0)
-    _log(verbose, "wrote %(nrecords)d records to %(filename)s in %(seconds).2fs" % stats)
+    _log(
+        verbose, "wrote %(nrecords)d records to %(filename)s in %(seconds).2fs" % stats
+    )
     return stats
 
 
@@ -721,7 +719,9 @@ def fcidump_mrpt2_outcore_opt(
                 pass
 
     stats = _stats(filename, writer, t0)
-    _log(verbose, "wrote %(nrecords)d records to %(filename)s in %(seconds).2fs" % stats)
+    _log(
+        verbose, "wrote %(nrecords)d records to %(filename)s in %(seconds).2fs" % stats
+    )
     return stats
 
 
@@ -751,7 +751,9 @@ def fcidump_mrpt2_incore_fast_opt(
     orb_sym = orbsym_ids(mol, mo)
     if aosym not in ("s4", "1", "s1"):
         raise ValueError("unsupported aosym=%r" % (aosym,))
-    _log(verbose, "nmo=%d nfzc=%d nact=%d nvir=%d tol=%g" % (nmo, nfzc, nact, nvir, tol))
+    _log(
+        verbose, "nmo=%d nfzc=%d nact=%d nvir=%d tol=%g" % (nmo, nfzc, nact, nvir, tol)
+    )
 
     chunks = fast_chunks(
         mol,
@@ -771,7 +773,9 @@ def fcidump_mrpt2_incore_fast_opt(
         _write_tail(fout, h1e, nmo, nuc, tol)
 
     stats = _stats(filename, writer, t0)
-    _log(verbose, "wrote %(nrecords)d records to %(filename)s in %(seconds).2fs" % stats)
+    _log(
+        verbose, "wrote %(nrecords)d records to %(filename)s in %(seconds).2fs" % stats
+    )
     return stats
 
 
