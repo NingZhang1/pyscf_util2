@@ -163,13 +163,17 @@ class TestDumpEquivalence(_FourComponentCase):
         for with_breit in (False, True):
             for is_complex in (False, True):
                 ref, new = self._run_pair("incore", with_breit, is_complex)
-                self._compare(ref, new, "incore breit=%s complex=%s" % (with_breit, is_complex))
+                self._compare(
+                    ref, new, "incore breit=%s complex=%s" % (with_breit, is_complex)
+                )
 
     def test_outcore(self):
         for with_breit in (False, True):
             for is_complex in (False, True):
                 ref, new = self._run_pair("outcore", with_breit, is_complex)
-                self._compare(ref, new, "outcore breit=%s complex=%s" % (with_breit, is_complex))
+                self._compare(
+                    ref, new, "outcore breit=%s complex=%s" % (with_breit, is_complex)
+                )
 
     def test_incore_equals_outcore(self):
         for with_breit in (False, True):
@@ -216,12 +220,24 @@ class TestDumpEquivalence(_FourComponentCase):
         ref = self.path("ref_nes.txt")
         new = self.path("new_nes.txt")
         old_mod.FCIDUMP_Rela4C(
-            self.mol, self.mf, with_breit=False, npes=10, filename=ref,
-            mode="incore", IsComplex=True, with_nes=True,
+            self.mol,
+            self.mf,
+            with_breit=False,
+            npes=10,
+            filename=ref,
+            mode="incore",
+            IsComplex=True,
+            with_nes=True,
         )
         opt_mod.FCIDUMP_Rela4C_opt(
-            self.mol, self.mf, with_breit=False, npes=10, filename=new,
-            mode="incore", IsComplex=True, with_nes=True,
+            self.mol,
+            self.mf,
+            with_breit=False,
+            npes=10,
+            filename=new,
+            mode="incore",
+            IsComplex=True,
+            with_nes=True,
         )
         self._compare(parse_fcidump(ref), parse_fcidump(new), "with_nes")
 
@@ -292,9 +308,7 @@ class TestSymmetryAssumptions(_FourComponentCase):
         c1 = 0.5 / lib.param.LIGHT_SPEED
 
         def transform(ao, a, b, c, d):
-            return lib.einsum(
-                "pqrs,pi,qj,rk,sl->ijkl", ao, a.conj(), b, c.conj(), d
-            )
+            return lib.einsum("pqrs,pi,qj,rk,sl->ijkl", ao, a.conj(), b, c.conj(), d)
 
         for intor_lsls, intor_lssl in (
             ("int2e_breit_ssp1ssp2_spinor", "int2e_breit_ssp1sps2_spinor"),
@@ -315,14 +329,26 @@ class TestSymmetryAssumptions(_FourComponentCase):
 
     def test_incore_tensor_matches_old(self):
         ref_c, ref_b = old_mod.FCIDUMP_Rela4C(
-            self.mol, self.mf, with_breit=True, npes=self.npes,
-            filename=self.path("t_ref.txt"), mode="incore", IsComplex=True,
-            debug=True, no_2e=True,
+            self.mol,
+            self.mf,
+            with_breit=True,
+            npes=self.npes,
+            filename=self.path("t_ref.txt"),
+            mode="incore",
+            IsComplex=True,
+            debug=True,
+            no_2e=True,
         )
         new_c, new_b = opt_mod.FCIDUMP_Rela4C_opt(
-            self.mol, self.mf, with_breit=True, npes=self.npes,
-            filename=self.path("t_new.txt"), mode="incore", IsComplex=True,
-            debug=True, no_2e=True,
+            self.mol,
+            self.mf,
+            with_breit=True,
+            npes=self.npes,
+            filename=self.path("t_new.txt"),
+            mode="incore",
+            IsComplex=True,
+            debug=True,
+            no_2e=True,
         )
         self.assertLessEqual(np.abs(ref_c - new_c).max(), 1e-11)
         self.assertLessEqual(np.abs(ref_b - new_b).max(), 1e-11)
@@ -339,8 +365,12 @@ class TestPerformance(unittest.TestCase):
         tmp = tempfile.mkdtemp(prefix="rela4c_perf_")
         try:
             mol = gto.M(
-                atom=WATER, basis="cc-pvdz-dk", verbose=0,
-                charge=0, spin=0, symmetry="c2v",
+                atom=WATER,
+                basis="cc-pvdz-dk",
+                verbose=0,
+                charge=0,
+                spin=0,
+                symmetry="c2v",
             )
             mol.build()
             mf = scf.dhf.RDHF(mol)
@@ -355,14 +385,24 @@ class TestPerformance(unittest.TestCase):
                     new = os.path.join(tmp, "n_%s_%d.txt" % (mode, with_breit))
                     t = time.time()
                     old_mod.FCIDUMP_Rela4C(
-                        mol, mf, with_breit=with_breit, npes=npes,
-                        filename=ref, mode=mode, IsComplex=True,
+                        mol,
+                        mf,
+                        with_breit=with_breit,
+                        npes=npes,
+                        filename=ref,
+                        mode=mode,
+                        IsComplex=True,
                     )
                     t_old = time.time() - t
                     t = time.time()
                     opt_mod.FCIDUMP_Rela4C_opt(
-                        mol, mf, with_breit=with_breit, npes=npes,
-                        filename=new, mode=mode, IsComplex=True,
+                        mol,
+                        mf,
+                        with_breit=with_breit,
+                        npes=npes,
+                        filename=new,
+                        mode=mode,
+                        IsComplex=True,
                     )
                     t_new = time.time() - t
                     self.assertLess(t_new, t_old, "%s breit=%d" % (mode, with_breit))

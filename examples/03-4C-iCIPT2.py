@@ -7,6 +7,9 @@ from pyscf_util.Relativisitc.integral_4C import (
 from pyscf_util.Relativisitc.integral_4C_opt import (
     FCIDUMP_Rela4C_SU2_opt,
 )
+from pyscf_util.Relativisitc.integral_4C_binary import (
+    FCIDUMP_Rela4C_SU2_binary,
+)
 
 mol = gto.M(
     atom="F 0 0 0",
@@ -64,6 +67,14 @@ FCIDUMP_Rela4C_SU2(
 )
 
 FCIDUMP_Rela4C_SU2_opt(mol, mf, True, filename=FCIDUMP_NAME + "_OPT", mode="outcore")
+FCIDUMP_Rela4C_SU2_binary(
+    mol,
+    mf,
+    True,
+    filename=FCIDUMP_NAME + "_head",
+    binary_filename=FCIDUMP_NAME + ".bin",
+    mode="outcore",
+)
 
 mol = gto.M(
     atom="F 0 0 0",
