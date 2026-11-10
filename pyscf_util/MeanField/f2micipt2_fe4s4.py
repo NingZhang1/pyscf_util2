@@ -21,29 +21,34 @@ mode 3        + LMCT: 配体 S 3p 的局域激发，激发等级和自旋上限�
               ``mx_ligand_ext_level`` / ``mx_ligand_spintwo`` 控制
 ============  ==========================================================
 
-程序接口::
+程序接口（当前版本）::
 
-    <executable> <input> <FCIDUMP> <mx_spintwo> <mode> \\
-                 <mx_ligand_ext_level> <mx_ligand_spintwo> <calculate_dm>
+    F2M_iCIPT2_Fe4S4.exe <input> <FCIDUMP> <mx_spintwo> <mode> \\
+                         <mx_ligand_ext_level> <mx_ligand_spintwo> \\
+                         <calculate_dm> <only_ferro_antiferro> \\
+                         <hmat_brute_force_threshold> <hmat_update> \\
+                         <prune_init_guess>
 
-其中 ``<input>`` 是与 iCIPT2 相同格式的输入文件。收敛后的 1-/2-RDM
-写到当前目录的 ``fe4s4_dm1.csv`` / ``fe4s4_dm2.csv``。
+RDM 输出由输入文件的 ``dumprdm`` 控制（0/1/2/7），收敛后的文件为
+``fe4s4_dm1.csv`` / ``fe4s4_dm2.csv``。
 
 本模块只是 :mod:`pyscf_util.MeanField.f2micipt2` 的一个子类：模型相关的
-常量（轨道数、RDM 文件名、默认 ``nsegment`` / ``mx_spintwo``、可执行文件
-环境变量）通过类属性覆盖。用法见
+常量 (轨道数、RDM 文件名、默认 ``nsegment`` / ``mx_spintwo``、可执行文件
+环境变量) 通过类属性覆盖。用法见
 ``examples/15-F2M-iCIPT2-Fe4S4-MCSCF.py``。
 """
 
 from pyscf_util.MeanField import f2micipt2 as _fe2s2
-from pyscf_util.MeanField.f2micipt2 import (
-    _write_fcidump,  # noqa: F401  (re-export for convenience)
-    extract_important_csf,  # noqa: F401
-    parse_ci_energies,  # noqa: F401
-    parse_local_states,  # noqa: F401
-    rdm_energy,  # noqa: F401
-    read_rdm1_csv,  # noqa: F401
-    read_rdm2_csv,  # noqa: F401
+from pyscf_util.MeanField.f2micipt2 import (  # noqa: F401  (re-export)
+    _write_fcidump,
+    extract_important_csf,
+    parse_ci_energies,
+    parse_important_csfs,
+    parse_local_states,
+    parse_task_energies,
+    rdm_energy,
+    read_rdm1_csv,
+    read_rdm2_csv,
 )
 
 # F2M_iCIPT2_Fe4S4 写出的 RDM 文件名是写死的
@@ -64,8 +69,8 @@ MODES = {
 class F2MiCIPT2Fe4S4Solver(_fe2s2.F2MiCIPT2Solver):
     """把 ``F2M_iCIPT2_Fe4S4`` 包装成 PySCF 的 FCI solver。
 
-    除了基类的参数外，``mode`` / ``mx_ligand_ext_level`` /
-    ``mx_ligand_spintwo`` 的含义见模块 docstring。
+    参数与基类 :class:`~pyscf_util.MeanField.f2micipt2.F2MiCIPT2Solver`
+    相同，模型相关的默认值由下面的类属性给出。
     """
 
     model_name = "Fe4S4"
@@ -92,11 +97,17 @@ def kernel(
     mx_spintwo=None,
     mode=1,
     mx_ligand_ext_level=1,
-    mx_ligand_spintwo=1,
+    mx_ligand_spintwo=3,
     nsegment=None,
     nvalelec=2,
+    selection=1,
     calc_rdm=True,
+    dumprdm=None,
     energy_source="rdm",
+    only_ferro_antiferro=False,
+    hmat_brute_force_threshold=0,
+    hmat_update=True,
+    prune_init_guess=True,
     omp_num_threads=None,
     print_ci_each_call=True,
     n_top_csf=3,
@@ -119,6 +130,10 @@ def kernel(
         3: 允许 LMCT (配体激发，自旋上限由 ``mx_ligand_spintwo`` 控制)。
     mx_ligand_ext_level, mx_ligand_spintwo :
         mode 3 下配体局域激发的等级和最大局域自旋。
+    selection : int
+        0 = 不做 selection；1 = 做 selection（由 cmin 控制）。
+    only_ferro_antiferro : bool
+        只保留铁磁/反铁磁耦合（对 4Fe-4S 很有用）。
 
     Returns
     -------
@@ -138,8 +153,14 @@ def kernel(
             mx_ligand_spintwo=mx_ligand_spintwo,
             nsegment=nsegment,
             nvalelec=nvalelec,
+            selection=selection,
             calc_rdm=calc_rdm,
+            dumprdm=dumprdm,
             energy_source=energy_source,
+            only_ferro_antiferro=only_ferro_antiferro,
+            hmat_brute_force_threshold=hmat_brute_force_threshold,
+            hmat_update=hmat_update,
+            prune_init_guess=prune_init_guess,
             omp_num_threads=omp_num_threads,
             print_ci_each_call=print_ci_each_call,
             n_top_csf=n_top_csf,
@@ -162,8 +183,14 @@ def kernel(
         mx_ligand_spintwo=mx_ligand_spintwo,
         nsegment=nsegment,
         nvalelec=nvalelec,
+        selection=selection,
         calc_rdm=calc_rdm,
+        dumprdm=dumprdm,
         energy_source=energy_source,
+        only_ferro_antiferro=only_ferro_antiferro,
+        hmat_brute_force_threshold=hmat_brute_force_threshold,
+        hmat_update=hmat_update,
+        prune_init_guess=prune_init_guess,
         omp_num_threads=omp_num_threads,
         print_ci_each_call=print_ci_each_call,
         n_top_csf=n_top_csf,

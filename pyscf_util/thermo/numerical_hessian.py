@@ -12,7 +12,7 @@ def numerical_grad_hess(f, x, step=1e-4, verbose=False):
 
     grad = np.zeros(n)
     for i in range(n):
-        if (verbose):
+        if verbose:
             print(f"grad component {i+1}/{n} done")
         xp = x.copy()
         xm = x.copy()

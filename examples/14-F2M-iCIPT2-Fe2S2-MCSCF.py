@@ -24,8 +24,14 @@ cmin=1e-2, etol=1e-6, 纯 CASCI):
     mode 3, ligand level 2 或 3     : -116.410994
     full CI (DMRG d=8000)           : -116.6056091
 
-cmin=1e-3 时 mode 3 + ligand level 2 给出 -116.524975 (ncsf=6388)。
 本脚本默认 cmin=1e-2, mode 3 + ligand level 2。
+
+注意: 当前 F2M_iCIPT2 版本的程序接口是
+    <input> <FCIDUMP> <mx_spintwo> <mode> <mx_ligand_ext_level>
+            <mx_ligand_spintwo> <calculate_dm> <only_ferro_antiferro>
+            <hmat_brute_force_threshold> <hmat_update> <prune_init_guess>
+其中 calculate_dm 已废弃, RDM 输出由输入文件的 dumprdm 控制
+(dumprdm=2 即态平均 1+2RDM, 本 driver 默认使用)。
 
 运行前设置可执行文件路径:
     export F2M_ICIPT2=/path/to/iCIPT2_Loong/bin/F2M_iCIPT2_Fe2S2.exe
@@ -66,32 +72,33 @@ FCIDUMP = os.environ.get("FE2S2_FCIDUMP", _DEFAULT_FCIDUMP)
 # F2M_iCIPT2 可执行文件 (由环境变量 F2M_ICIPT2 或 PATH 提供)
 EXECUTABLE = os.environ.get("F2M_ICIPT2")
 
-# 工作目录: FCIDUMP / input / stdout / RDM csv 都写在这里
+# 工作目录: FCIDUMP / input / stdout / RDM csv / mo_coeff 都写在这里
 WORKDIR = os.path.join(os.getcwd(), "f2m_icipt2_fe2s2")
 
-# cmin: iCIPT2 的 selection threshold。
+# 局域态模式 (累积): 1/2/3
+MODE = 3
+
+# cmin: iCIPT2 的 selection threshold (输入文件里 selection=1 时生效)
 #   * 1e-2 : 几十秒，粗指标
-#   * 1e-3 : 几分钟，RDM 与程序打印的能量一致
-#   * 1e-4 : 十分钟量级；当前版本在 etol 很小时，BUGA dump 出来的 RDM
-#            可能与最后打印的能量不自洽（差 ~0.3 eV），此时 solver 会
-#            warning 并采用与 RDM 自洽的能量
+#   * 1e-3 : 几分钟，能量更低
 CMIN = "1e-2"
 ETOL = "1e-6"
 
-# 局域态模式 (与 Fe4S4 一致):
-#   1: 只有自旋激发 (Fe2+/Fe3+)
-#   2: + MMCT (Fe+/Fe4+)
-#   3: + LMCT (配体激发)
-MODE = 3
-
 # mode 3 才用到的配体激发参数
 #   mx_ligand_ext_level: 0..6 (S3p 最多 6 个电子; 外围 S 为 0..2)
-#   mx_ligand_spintwo  : 配体局域态允许的最大 2S (3 才允许 p^3 的 quartet)
+#   mx_ligand_spintwo  : 配体局域态允许的最大 2S (3 = 不限制)
 MX_LIGAND_EXT_LEVEL = 2
-MX_LIGAND_SPINTWO = 2
+MX_LIGAND_SPINTWO = 3
 
 # mx_spintwo: BUGA 局域态允许的最大自旋 (None -> 模型默认值)
 MX_SPINTWO = 10
+
+# 其他新选项 (与程序命令行一一对应)
+SELECTION = 1  # 1: 做 cmin selection; 0: 初猜即最终结果
+ONLY_FERRO_ANTIFERRO = False
+HMAT_BRUTE_FORCE_THRESHOLD = 0
+HMAT_UPDATE = True
+PRUNE_INIT_GUESS = True
 
 
 def main():
@@ -107,6 +114,11 @@ def main():
         mode=MODE,
         mx_ligand_ext_level=MX_LIGAND_EXT_LEVEL,
         mx_ligand_spintwo=MX_LIGAND_SPINTWO,
+        selection=SELECTION,
+        only_ferro_antiferro=ONLY_FERRO_ANTIFERRO,
+        hmat_brute_force_threshold=HMAT_BRUTE_FORCE_THRESHOLD,
+        hmat_update=HMAT_UPDATE,
+        prune_init_guess=PRUNE_INIT_GUESS,
         mc_conv_tol=1e-7,
         mc_max_macro=8,  # 示例只跑 8 个 macro；收敛通常需要更多
         run_mcscf=True,  # False: 只做一次 CASCI
@@ -116,6 +128,7 @@ def main():
 
     print("")
     print("=" * 70)
+    print("mode                     = %d" % MODE)
     print("F2M_iCIPT2 / FCI energy  = %.10f" % mc.e_tot)
     print("ncas / nelecas           = %d / %s" % (mc.ncas, mc.nelecas))
     print("reference (DMRG d=8000)  = -116.6056091")

@@ -3,57 +3,62 @@
 
 ``F2M_iCIPT2`` 是 iCIPT2 家族中面向 [2Fe-2S] / [4Fe-4S] 模型 Hamiltonian 的
 BUGA (Block Unitary Group Approach) 版本 (``src/app/F2M_iCIPT2_Fe2S2.cpp`` /
-``F2M_iCIPT2_Fe4S4.cpp``)。它们读取
+``F2M_iCIPT2_Fe4S4.cpp``)。当前版本的程序接口是::
 
-    <executable> <input> <FCIDUMP> <mx_spintwo> <mode> \
-                 <mx_ligand_ext_level> <mx_ligand_spintwo> <calculate_dm>
+    <executable> <input> <FCIDUMP> <mx_spintwo> <mode> \\
+                 <mx_ligand_ext_level> <mx_ligand_spintwo> <calculate_dm> \\
+                 <only_ferro_antiferro> <hmat_brute_force_threshold> \\
+                 <hmat_update> <prune_init_guess>
 
-其中 ``<input>`` 是与标准 iCIPT2 相同格式的输入文件（见
-``iCIPT2_Loong/examples/06-F2M_iCIPT2/``）。局域态模型支持三种累加模式：
+其中
 
-    mode 1 : 只有自旋激发          Fe(2+) / Fe(3+)
-    mode 2 : + MMCT                Fe(+) / Fe(4+)  (d^4 high spin)
-    mode 3 : + LMCT                配体 S 3p 局域激发，激发等级和自旋上限
-                                   分别由 mx_ligand_ext_level / mx_ligand_spintwo
-                                   控制
+* ``mx_spintwo``                : 允许的最大中间自旋 (Fe2S2 默认 10, Fe4S4 默认 20);
+* ``mode``                      : 1 = 只有自旋激发 (Fe2+/Fe3+)；
+                                  2 = + MMCT (Fe+/Fe4+ d^4 high spin)；
+                                  3 = + LMCT (配体 S 3p 局域激发)；
+* ``mx_ligand_ext_level``       : 配体局域激发等级 (mode 3)，S3p 支持 0..6；
+* ``mx_ligand_spintwo``         : 配体激发态允许的最大 2S；
+* ``calculate_dm``              : 已废弃（程序忽略），RDM 输出改由输入文件的
+                                  ``dumprdm`` 控制；
+* ``only_ferro_antiferro``      : 1 = 只保留铁磁(最大自旋)/反铁磁(最小自旋)耦合；
+* ``hmat_brute_force_threshold``: > 0 时，维度小于该值时用 brute-force H；
+* ``hmat_update``               : 1 = 增量式建 H (append-only)，0 = 每次重建；
+* ``prune_init_guess``          : 1 = selection 时允许剪掉初猜 CSF。
 
-程序把收敛后的 1-/2-RDM 写到工作目录（Fe2S2: ``fe2s2_dm*.csv``,
+输入文件与标准 iCIPT2 相同（见 ``iCIPT2_Loong/examples/06-F2M_iCIPT2/``），
+其中两个关键字现在很重要：
+
+* ``selection = 0`` : 不做 selection，初猜就是最终结果；
+  ``selection = 1`` : 做 selection（由 ``cmin`` 控制）；
+* ``dumprdm = 0/1/2/7`` : 0 = 不 dump；1 = 态平均 1RDM；
+  2 = 态平均 1+2RDM；7 = 每个态分别 dump 1+2RDM。
+
+收敛后的 1-/2-RDM 写到工作目录（Fe2S2: ``fe2s2_dm*.csv``,
 Fe4S4: ``fe4s4_dm*.csv``）。
 
 本模块提供两层接口：
 
 1. :class:`F2MiCIPT2Solver`
    一个 PySCF FCI-solver 风格的 wrapper（``kernel`` / ``make_rdm1`` /
-   ``make_rdm12`` / ``spin_square`` / ``print_summary``），可以直接赋给
-   ``pyscf.mcscf.CASSCF.fcisolver``。Fe4S4 版本见
-   :mod:`pyscf_util.MeanField.f2micipt2_fe4s4`。
+   ``make_rdm12`` / ``spin_square`` / ``print_summary`` / ``dump_mo``）。
+   Fe4S4 版本见 :mod:`pyscf_util.MeanField.f2micipt2_fe4s4`。
 
 2. :func:`kernel`
-   MCSCF driver：从一个 FCIDUMP 出发构造 PySCF CASSCF 对象（借助
-   :mod:`pyscf_util.misc.setup_mcscf_from_fcidump`），把 CI solver 换成
-   F2M_iCIPT2，然后做宏迭代。``print_summary=True`` 时在结束时打印
-   宏迭代历史、最后一次 CI 调用的局域态和重要组态以及能量。
+   MCSCF driver：从一个 FCIDUMP 出发构造 PySCF CASSCF 对象，把 CI solver
+   换成 F2M_iCIPT2，然后做宏迭代。
 
 注意 / Note
 -----------
-* 程序内部把轨道顺序、``ref_occ`` 写死，因此本 driver 要求
-  **ncas == norb(FCIDUMP)**，并使用 FCIDUMP 的轨道基作为初猜。
-* 默认打开 ``internal_rotation``，即允许活性空间内部的轨道旋转
-  （PySCF 的 1-step CASSCF），这样宏迭代会真正进行。F2M_iCIPT2 的
-  局域态模型是在给定轨道基下定义的，所以旋转后的能量会随基变化；
-  若只想在原始 FCIDUMP 基下做 CASCI，设 ``run_mcscf=False`` 或
-  ``internal_rotation=False``。
-* 关闭 ``canonicalization``，避免宏迭代结束时再做一次多余的酉旋转。
-* 可执行文件：Fe2S2 用 ``F2M_ICIPT2`` / ``F2M_ICIPT2_FE2S2`` 环境变量，
-  Fe4S4 用 ``F2M_ICIPT2_FE4S4``（见各子类）。
-* 诊断输出：
-
-  - 每次真正调用 F2M_iCIPT2 都会打印最重要的几个组态（``n_top_csf``，
-    默认 3 个），便于检查宏迭代是否合理；
-  - ``print_summary=True`` 时结束时打印宏迭代历史、CI 调用表、最后一次
-    调用的局域态和重要组态、能量以及 ``mo_coeff`` 矩阵；
-  - ``dump_mo=True``（默认）把 ``mo_coeff`` 写成 ``mo_coeff.csv``，并画出
-    热图 ``mo_coeff_heatmap.png``（需要 matplotlib）。
+* 程序内部把轨道顺序、``ref_occ`` 写死，因此要求
+  **ncas == norb(FCIDUMP)**，初猜使用 FCIDUMP 的轨道基。
+* 默认打开 ``internal_rotation``，允许活性空间内部的轨道旋转，
+  这样宏迭代会真正进行。F2M_iCIPT2 的局域态模型是在给定轨道基下定义的，
+  旋转后的能量会随基变化；若只想在原始基下做 CASCI，设
+  ``run_mcscf=False`` 或 ``internal_rotation=False``。
+* 每次真正调用 F2M_iCIPT2 都会打印最重要的几个组态（``n_top_csf``），
+  ``print_summary=True`` 时结束打印宏迭代历史、最后一次调用的局域态/
+  重要组态、能量和 ``mo_coeff``；``dump_mo=True``（默认）把 ``mo_coeff``
+  写成 ``mo_coeff.csv`` 并画出热图 ``mo_coeff_heatmap.png``。
 """
 
 import os
@@ -82,8 +87,8 @@ nvalelec={nvalelec}
 rotatemo=0
 inputcfg=3
 davidson=0
-selection=0
-dumprdm=2
+selection={selection}
+dumprdm={dumprdm}
 relative=0
 perturbation=0 0
 task={task}
@@ -95,9 +100,23 @@ nstates={nstates}
 # 解析 stdout 中的 CI 能量:  "Eig[   0]  :   -116.47094408"
 _ENERGY_PATTERN = re.compile(r"Eig\[\s*(\d+)\s*\]\s*:\s*(-?\d+\.\d+(?:[eE][-+]?\d+)?)")
 
+# 新版本程序的最终能量:  "task 0 final energies:" 后面跟
+#   "  state  0 : -115.953720058215"
+_TASK_HEADER_RE = re.compile(r"^task\s+(\d+)\s+final energies:\s*$", re.M)
+_STATE_ENERGY_RE = re.compile(
+    r"^\s*state\s+(\d+)\s*:\s*(-?\d+\.\d+(?:[eE][-+]?\d+)?)\s*$", re.M
+)
+
+_NCSF_RE = re.compile(r"ncsf\s*=\s*(\d+)")
+_BLOCK_STATE_RE = re.compile(
+    r"nelec : (\d+), spintwo : (\d+), nopen : (\d+)\s*\n\s*n_local_state\s*:\s*(\d+)"
+)
+
 
 def _locate_executable(
-    exe_env="F2M_ICIPT2_FE2S2", exe_name="F2M_iCIPT2_Fe2S2.exe", model_tag="Fe2S2"
+    exe_env="F2M_ICIPT2_FE2S2",
+    exe_name="F2M_iCIPT2_Fe2S2.exe",
+    model_tag="Fe2S2",
 ):
     """找到 F2M_iCIPT2 可执行文件。"""
     for var in (exe_env, "F2M_ICIPT2"):
@@ -246,10 +265,42 @@ def rdm_energy(h1e, eri, rdm1, rdm2, ecore=0.0):
     return ecore + e1 + e2
 
 
-_BLOCK_STATE_RE = re.compile(
-    r"nelec : (\d+), spintwo : (\d+), nopen : (\d+)\s*\n\s*n_local_state\s*:\s*(\d+)"
-)
-_NCSF_RE = re.compile(r"ncsf\s*=\s*(\d+)")
+###########################################################
+# stdout 解析
+###########################################################
+
+
+def parse_ci_energies(text, nstates):
+    """从 F2M_iCIPT2 的 stdout 中取出最后一次对角化的各个态能量。"""
+    matches = _ENERGY_PATTERN.findall(text)
+    if len(matches) < nstates:
+        raise RuntimeError(
+            "Cannot find %d CI energies in the F2M_iCIPT2 output" % nstates
+        )
+    last = matches[-nstates:]
+    energies = []
+    for i, (istate, e) in enumerate(last):
+        if int(istate) != i and nstates > 1:
+            raise RuntimeError("Inconsistent state index in F2M_iCIPT2 output")
+        energies.append(float(e))
+    return energies
+
+
+def parse_task_energies(text, nstates=None):
+    """解析 ``task N final energies:`` 段（新版本程序的最终能量）。
+
+    返回最后一个 task 的各态能量；找不到时返回 ``None``。
+    """
+    headers = list(_TASK_HEADER_RE.finditer(text))
+    if not headers:
+        return None
+    body = text[headers[-1].end() :]
+    energies = [float(e) for _, e in _STATE_ENERGY_RE.findall(body)]
+    if not energies:
+        return None
+    if nstates is not None:
+        energies = energies[:nstates]
+    return energies
 
 
 def parse_local_states(text):
@@ -275,47 +326,6 @@ def parse_local_states(text):
             )
         )
     return blocks
-
-
-def plot_matrix_heatmap(
-    matrix, filename, title="", xlabel="MO index", ylabel="basis index", cmap="RdBu_r"
-):
-    """把矩阵画成热图并保存为图片 (需要 matplotlib)。
-
-    Parameters
-    ----------
-    matrix : array-like, shape (nrow, ncol)
-    filename : str
-        输出图片路径（根据后缀决定格式，例如 ``.png``/``.pdf``）。
-    """
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    matrix = numpy.asarray(matrix, dtype=float)
-    nrow, ncol = matrix.shape
-    vmax = float(numpy.abs(matrix).max())
-    if vmax <= 0:
-        vmax = 1.0
-
-    fig, ax = plt.subplots(
-        figsize=(max(6.0, 0.30 * ncol + 2.0), max(4.5, 0.30 * nrow + 1.5))
-    )
-    im = ax.imshow(
-        matrix, cmap=cmap, vmin=-vmax, vmax=vmax, aspect="auto", origin="upper"
-    )
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
-    ax.set_xticks(range(0, ncol, max(1, ncol // 12)))
-    ax.set_yticks(range(0, nrow, max(1, nrow // 12)))
-    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    cbar.set_label("coefficient")
-    fig.tight_layout()
-    fig.savefig(filename, dpi=150)
-    plt.close(fig)
-    return filename
 
 
 def parse_important_csfs(text):
@@ -355,20 +365,43 @@ def extract_important_csf(text):
     return text[start:end].strip("\n")
 
 
-def parse_ci_energies(text, nstates):
-    """从 F2M_iCIPT2 的 stdout 中取出最后一次对角化的各个态能量。"""
-    matches = _ENERGY_PATTERN.findall(text)
-    if len(matches) < nstates:
-        raise RuntimeError(
-            "Cannot find %d CI energies in the F2M_iCIPT2 output" % nstates
-        )
-    last = matches[-nstates:]
-    energies = []
-    for i, (istate, e) in enumerate(last):
-        if int(istate) != i and nstates > 1:
-            raise RuntimeError("Inconsistent state index in F2M_iCIPT2 output")
-        energies.append(float(e))
-    return energies
+def plot_matrix_heatmap(
+    matrix,
+    filename,
+    title="",
+    xlabel="MO index",
+    ylabel="basis index",
+    cmap="RdBu_r",
+):
+    """把矩阵画成热图并保存为图片 (需要 matplotlib)。"""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    matrix = numpy.asarray(matrix, dtype=float)
+    nrow, ncol = matrix.shape
+    vmax = float(numpy.abs(matrix).max())
+    if vmax <= 0:
+        vmax = 1.0
+
+    fig, ax = plt.subplots(
+        figsize=(max(6.0, 0.30 * ncol + 2.0), max(4.5, 0.30 * nrow + 1.5))
+    )
+    im = ax.imshow(
+        matrix, cmap=cmap, vmin=-vmax, vmax=vmax, aspect="auto", origin="upper"
+    )
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.set_xticks(range(0, ncol, max(1, ncol // 12)))
+    ax.set_yticks(range(0, nrow, max(1, nrow // 12)))
+    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("coefficient")
+    fig.tight_layout()
+    fig.savefig(filename, dpi=150)
+    plt.close(fig)
+    return filename
 
 
 ###########################################################
@@ -388,27 +421,34 @@ class F2MiCIPT2Solver(lib.StreamObject):
     spin : int
         2S（PySCF 约定），默认 0（singlet）。
     nroots : int
-        态的个数。目前只支持 1，因为 F2M_iCIPT2 只 dump 一个态的 RDM。
+        态的个数。目前只支持 1。
     cmin : float or str
-        iCIPT2 的 selection threshold。
+        selection threshold。
     etol : float
-        iCIPT2 的能量收敛阈值。
+        对角化/能量收敛阈值。
     mx_spintwo : int
-        BUGA 局域态允许的最大自旋（程序 argv[3]）。
+        BUGA 局域态允许的最大中间自旋（程序 argv[3]）。
     mode : int
         1: 只有自旋激发 (Fe2+/Fe3+)；2: + MMCT (Fe+/Fe4+)；
         3: + LMCT (配体激发)。
-    mx_ligand_ext_level : int
-        配体局域激发等级（mode 3；程序 argv[5]）。
-    mx_ligand_spintwo : int
-        配体激发态允许的最大局域自旋（mode 3；程序 argv[6]）。
-    nsegment, nvalelec :
-        与 iCIPT2 输入文件中的同名关键词一致（BUGA 版本里主要用于
-        读取积分，默认值与官方例子相同）。
+    mx_ligand_ext_level, mx_ligand_spintwo :
+        配体局域激发等级和最大局域自旋（mode 3；程序 argv[5], argv[6]）。
+    selection : int
+        输入文件关键字：0 = 不做 selection；1 = 做 selection。
+    calc_rdm : bool
+        是否请求 RDM。实际写什么由 ``dumprdm`` 决定：
+        0 = 不写；1 = 态平均 1RDM；2 = 态平均 1+2RDM；7 = 每个态 1+2RDM。
+    only_ferro_antiferro : bool
+        只保留铁磁(最大自旋)/反铁磁(最小自旋)耦合。
+    hmat_brute_force_threshold : int
+        > 0 时，维度小于该值时用 brute-force 建 H，否则用 tree。
+    hmat_update : bool
+        True = 增量式建 H；False = 每次重建。
+    prune_init_guess : bool
+        selection 时是否允许剪掉初猜 CSF。
     energy_source : {'rdm', 'printed'}
         返回给 PySCF 的能量来源。'rdm'（默认）用 RDM 重算能量，保证
-        能量和密度矩阵自洽；'printed' 用程序在 stdout 里最后打印的
-        能量（final prune 之前）。正常计算两者一致。
+        能量和密度矩阵自洽；'printed' 用程序打印的最终能量。
     """
 
     # ---- 模型相关的默认值，子类 (Fe4S4) 覆盖 ----
@@ -433,12 +473,18 @@ class F2MiCIPT2Solver(lib.StreamObject):
         mx_spintwo=None,
         mode=1,
         mx_ligand_ext_level=1,
-        mx_ligand_spintwo=1,
+        mx_ligand_spintwo=3,
         nsegment=None,
         nvalelec=2,
         irrep=0,
+        selection=1,
         calc_rdm=True,
+        dumprdm=None,
         energy_source="rdm",
+        only_ferro_antiferro=False,
+        hmat_brute_force_threshold=0,
+        hmat_update=True,
+        prune_init_guess=True,
         omp_num_threads=None,
         print_ci_each_call=True,
         n_top_csf=3,
@@ -446,6 +492,8 @@ class F2MiCIPT2Solver(lib.StreamObject):
     ):
         if mode not in (1, 2, 3):
             raise ValueError("mode must be 1, 2 or 3 (got %r)" % (mode,))
+        if selection not in (0, 1):
+            raise ValueError("selection must be 0 or 1 (got %r)" % (selection,))
         if executable is None:
             executable = _locate_executable(self.exe_env, self.exe_name, self.model_tag)
         self.executable = executable
@@ -465,12 +513,26 @@ class F2MiCIPT2Solver(lib.StreamObject):
         self.nsegment = self.default_nsegment if nsegment is None else nsegment
         self.nvalelec = nvalelec
         self.irrep = irrep
-        self.calc_rdm = calc_rdm
+        self.selection = int(selection)
+        self.calc_rdm = bool(calc_rdm)
+        if dumprdm is None:
+            dumprdm = 2 if self.calc_rdm else 0
+        if int(dumprdm) not in (0, 1, 2, 7):
+            raise ValueError("dumprdm must be 0, 1, 2 or 7 (got %r)" % (dumprdm,))
+        self.dumprdm = int(dumprdm)
+        if self.calc_rdm and self.dumprdm == 0:
+            raise ValueError(
+                "calc_rdm=True needs dumprdm = 1, 2 or 7 (dumprdm=0 writes no RDM)"
+            )
         if energy_source not in ("rdm", "printed"):
             raise ValueError("energy_source must be 'rdm' or 'printed'")
         self.energy_source = energy_source
+        self.only_ferro_antiferro = bool(only_ferro_antiferro)
+        self.hmat_brute_force_threshold = int(hmat_brute_force_threshold)
+        self.hmat_update = bool(hmat_update)
+        self.prune_init_guess = bool(prune_init_guess)
         self.omp_num_threads = omp_num_threads
-        self.print_ci_each_call = print_ci_each_call
+        self.print_ci_each_call = bool(print_ci_each_call)
         self.n_top_csf = int(n_top_csf)
         self.verbose = logger.NOTE if verbose is None else verbose
 
@@ -511,6 +573,12 @@ class F2MiCIPT2Solver(lib.StreamObject):
         log.info("mx_ligand_ext   = %d", self.mx_ligand_ext_level)
         log.info("mx_ligand_spin  = %d", self.mx_ligand_spintwo)
         log.info("nsegment        = %s", self.nsegment)
+        log.info("selection       = %d", self.selection)
+        log.info("dumprdm         = %d", self.dumprdm)
+        log.info("only Fe/AF      = %d", int(self.only_ferro_antiferro))
+        log.info("hmat brute thr  = %d", self.hmat_brute_force_threshold)
+        log.info("hmat update     = %d", int(self.hmat_update))
+        log.info("prune init guess= %d", int(self.prune_init_guess))
         log.info("energy source   = %s", self.energy_source)
         log.info(
             "OMP_NUM_THREADS = %s",
@@ -533,6 +601,8 @@ class F2MiCIPT2Solver(lib.StreamObject):
             etol=self.etol,
             nsegment=self.nsegment,
             nvalelec=self.nvalelec,
+            selection=self.selection,
+            dumprdm=self.dumprdm,
             task=self._task_line(spintwo),
             spin=spintwo / 2.0,
             nstates=self.nroots,
@@ -542,7 +612,7 @@ class F2MiCIPT2Solver(lib.StreamObject):
         return filename
 
     def _build_cmd(self, inputfile, integralfile):
-        """F2M_iCIPT2 的命令行参数。"""
+        """F2M_iCIPT2 的命令行参数 (当前版本接口)。"""
         return [
             self.executable,
             inputfile,
@@ -551,7 +621,11 @@ class F2MiCIPT2Solver(lib.StreamObject):
             str(self.mode),
             str(self.mx_ligand_ext_level),
             str(self.mx_ligand_spintwo),
-            "1" if self.calc_rdm else "0",
+            "1" if self.calc_rdm else "0",  # calculate_dm (程序已忽略)
+            "1" if self.only_ferro_antiferro else "0",
+            str(self.hmat_brute_force_threshold),
+            "1" if self.hmat_update else "0",
+            "1" if self.prune_init_guess else "0",
         ]
 
     def _run_program(self, inputfile, integralfile, spintwo):
@@ -649,7 +723,11 @@ class F2MiCIPT2Solver(lib.StreamObject):
         self._ncall += 1
         output, logfile = self._run_program(inputfile, integralfile, spintwo)
 
-        energies = parse_ci_energies(output, self.nroots)
+        # 新版本程序在 "task N final energies:" 里打印最终能量；
+        # 旧版本只有 Eig[...] 行，作为后备。
+        energies = parse_task_energies(output, self.nroots)
+        if energies is None:
+            energies = parse_ci_energies(output, self.nroots)
         # FCIDUMP 里已经带了 ecore，所以打印出来的能量就是总能量
         self.e_printed = energies[0]
 
@@ -661,7 +739,8 @@ class F2MiCIPT2Solver(lib.StreamObject):
             dm2_path = os.path.join(self.workdir, self.dm2_name)
             if not (os.path.isfile(dm1_path) and os.path.isfile(dm2_path)):
                 raise RuntimeError(
-                    "F2M_iCIPT2 did not dump the RDMs in %s" % self.workdir
+                    "F2M_iCIPT2 did not dump the RDMs in %s (dumprdm=%d)"
+                    % (self.workdir, self.dumprdm)
                 )
             dm1 = read_rdm1_csv(dm1_path, norb)
             dm2 = read_rdm2_csv(dm2_path, norb)
@@ -683,16 +762,11 @@ class F2MiCIPT2Solver(lib.StreamObject):
 
             e_rdm = rdm_energy(h1e, eri, dm1, dm2, ecore)
 
-            # F2M_iCIPT2 在 final prune 之后不再打印能量；当 cmin 很小、
-            # 空间很大时，dump 出来的 RDM 所对应的态可能与最后打印的
-            # 能量不一致（实测 cmin=1e-4 时约 0.3 eV）。为保证 MCSCF 的
-            # 能量与 RDM 自洽，这里统一采用 RDM 能量，并给出 warning。
             if abs(e_rdm - self.e_printed) > 1e-6:
                 logger.warn(
                     self,
-                    "F2M_iCIPT2: energy printed by the program (%.12f) "
-                    "differs from the RDM energy (%.12f) by %.3e. "
-                    "The RDM energy will be used.",
+                    "F2M_iCIPT2: printed energy (%.12f) differs from the RDM "
+                    "energy (%.12f) by %.3e.  The RDM energy will be used.",
                     self.e_printed,
                     e_rdm,
                     e_rdm - self.e_printed,
@@ -724,8 +798,7 @@ class F2MiCIPT2Solver(lib.StreamObject):
             logfile,
         )
 
-        # 保存诊断信息，供 print_summary / 每次调用的组态输出使用
-        # 最后一次 selection 之后的 CSF 数目（日志里第一个是初猜空间）
+        # 诊断信息
         ncsf_list = _NCSF_RE.findall(output)
         ncsf = int(ncsf_list[-1]) if ncsf_list else None
         csfs = parse_important_csfs(output)
@@ -751,6 +824,7 @@ class F2MiCIPT2Solver(lib.StreamObject):
                 mx_spintwo=self.mx_spintwo,
                 mx_ligand_ext_level=self.mx_ligand_ext_level,
                 mx_ligand_spintwo=self.mx_ligand_spintwo,
+                selection=self.selection,
                 nelec=nelec_tot,
                 spin_2S=spintwo,
                 e_printed=self.e_printed,
@@ -762,6 +836,29 @@ class F2MiCIPT2Solver(lib.StreamObject):
             )
         )
         return e_ci, ci
+
+    def make_rdm1(self, fcivec=None, norb=None, nelec=None, **kwargs):
+        if self._rdm1 is None:
+            raise RuntimeError(
+                "No RDM available.  Set calc_rdm=True (dumprdm=1/2/7) and call "
+                "kernel() first."
+            )
+        return self._rdm1
+
+    def make_rdm2(self, fcivec=None, norb=None, nelec=None, **kwargs):
+        if self._rdm2 is None:
+            raise RuntimeError(
+                "No RDM available.  Set calc_rdm=True (dumprdm=2/7) and call "
+                "kernel() first."
+            )
+        return self._rdm2
+
+    def make_rdm12(self, fcivec=None, norb=None, nelec=None, **kwargs):
+        return self.make_rdm1(), self.make_rdm2()
+
+    def spin_square(self, fcivec=None, norb=None, nelec=None):
+        s = float(self.spin) / 2.0
+        return s * (s + 1.0), self.spin + 1
 
     #######################################################
     # 诊断输出
@@ -830,15 +927,7 @@ class F2MiCIPT2Solver(lib.StreamObject):
         stream.flush()
 
     def print_summary(self, mc=None, stream=None):
-        """打印 MCSCF 迭代过程、最后一次 CI 调用的局域态/重要组态和能量。
-
-        Parameters
-        ----------
-        mc : pyscf.mcscf.CASSCF, optional
-            默认使用 driver 保存的 ``self.mc``。
-        stream : file-like, optional
-            默认 ``sys.stdout``。
-        """
+        """打印 MCSCF 迭代过程、最后一次 CI 调用的局域态/重要组态和能量。"""
         import sys
 
         if stream is None:
@@ -861,6 +950,17 @@ class F2MiCIPT2Solver(lib.StreamObject):
         w(
             " ligand ext/spin : %d / %d"
             % (self.mx_ligand_ext_level, self.mx_ligand_spintwo)
+        )
+        w(" selection       : %d" % self.selection)
+        w(" dumprdm         : %d" % self.dumprdm)
+        w(" only Fe/AF      : %d" % int(self.only_ferro_antiferro))
+        w(
+            " hmat brute thr  : %d, hmat update : %d, prune init : %d"
+            % (
+                self.hmat_brute_force_threshold,
+                int(self.hmat_update),
+                int(self.prune_init_guess),
+            )
         )
         w(" energy source   : %s" % self.energy_source)
         w(" binary calls    : %d" % len(self.history))
@@ -970,27 +1070,6 @@ class F2MiCIPT2Solver(lib.StreamObject):
         w(line)
         stream.flush()
 
-    def make_rdm1(self, fcivec=None, norb=None, nelec=None, **kwargs):
-        if self._rdm1 is None:
-            raise RuntimeError(
-                "No RDM available.  Set calc_rdm=True and call kernel() first."
-            )
-        return self._rdm1
-
-    def make_rdm2(self, fcivec=None, norb=None, nelec=None, **kwargs):
-        if self._rdm2 is None:
-            raise RuntimeError(
-                "No RDM available.  Set calc_rdm=True and call kernel() first."
-            )
-        return self._rdm2
-
-    def make_rdm12(self, fcivec=None, norb=None, nelec=None, **kwargs):
-        return self.make_rdm1(), self.make_rdm2()
-
-    def spin_square(self, fcivec=None, norb=None, nelec=None):
-        s = float(self.spin) / 2.0
-        return s * (s + 1.0), self.spin + 1
-
 
 ###########################################################
 # MCSCF driver
@@ -1010,14 +1089,20 @@ def kernel(
     mx_spintwo=None,
     mode=1,
     mx_ligand_ext_level=1,
-    mx_ligand_spintwo=3,  # 不限制
+    mx_ligand_spintwo=3,
     nsegment=None,
     nvalelec=2,
+    selection=1,
     calc_rdm=True,
+    dumprdm=None,
     energy_source="rdm",
+    only_ferro_antiferro=False,
+    hmat_brute_force_threshold=0,
+    hmat_update=True,
+    prune_init_guess=True,
     omp_num_threads=None,
     print_ci_each_call=True,
-    n_top_csf=5,
+    n_top_csf=3,
     mc_conv_tol=1e-7,
     mc_max_macro=32,
     run_mcscf=True,
@@ -1048,20 +1133,27 @@ def kernel(
         3: + LMCT (配体激发)。
     mx_ligand_ext_level, mx_ligand_spintwo :
         mode 3 下配体局域激发的等级和最大局域自旋。
+    selection : int
+        0 = 不做 selection；1 = 做 selection（由 cmin 控制）。
+    calc_rdm, dumprdm :
+        是否请求 RDM 以及 ``dumprdm`` 的取值（0/1/2/7）。
+    only_ferro_antiferro, hmat_brute_force_threshold, hmat_update,
+    prune_init_guess :
+        透传给 F2M_iCIPT2 的新选项。
     energy_source : {'rdm', 'printed'}
-        透传给 F2M_iCIPT2（见 :class:`F2MiCIPT2Solver`）。
+        透传给 F2M_iCIPT2。
     omp_num_threads : int, optional
         给 F2M_iCIPT2 子进程设置的 OMP_NUM_THREADS；None 表示继承环境。
     run_mcscf : bool
         True  : 走完整的 CASSCF 宏迭代；
         False : 只做一次 CASCI（一次 F2M_iCIPT2 调用）。
     internal_rotation : bool
-        是否允许活性空间内部的轨道旋转。True 时 PySCF 会真正做
-        orbital optimization（对 F2M_iCIPT2 这样的近似 CI solver，
-        能量会随轨道基变化）；False 时退化为固定轨道基的 CASCI。
+        是否允许活性空间内部的轨道旋转。
     print_summary : bool
-        结束时打印宏迭代历史、最后一次 F2M_iCIPT2 调用的局域态和
-        重要组态，以及能量。
+        结束时打印宏迭代历史、最后一次 F2M_iCIPT2 调用的局域态和重要组态、
+        能量以及 mo_coeff。
+    dump_mo : bool
+        结束时把 mo_coeff 写成 csv 并画热图。
 
     Returns
     -------
@@ -1119,11 +1211,9 @@ def kernel(
         verbose=verbose,
     )
 
-    # 关键: 初猜使用 FCIDUMP 的轨道基。FCIDUMP 的轨道本身正交，
-    # 单位矩阵就是最自然的 mo_coeff。
+    # 关键: 初猜使用 FCIDUMP 的轨道基。
     mo_init = numpy.eye(norb)
     mc.mo_coeff = mo_init
-    mc.internal_rotation = True
 
     if solver is None:
         solver = F2MiCIPT2Solver(
@@ -1139,8 +1229,14 @@ def kernel(
             mx_ligand_spintwo=mx_ligand_spintwo,
             nsegment=nsegment,
             nvalelec=nvalelec,
+            selection=selection,
             calc_rdm=calc_rdm,
+            dumprdm=dumprdm,
             energy_source=energy_source,
+            only_ferro_antiferro=only_ferro_antiferro,
+            hmat_brute_force_threshold=hmat_brute_force_threshold,
+            hmat_update=hmat_update,
+            prune_init_guess=prune_init_guess,
             omp_num_threads=omp_num_threads,
             print_ci_each_call=print_ci_each_call,
             n_top_csf=n_top_csf,
@@ -1151,13 +1247,9 @@ def kernel(
 
     mc.conv_tol = mc_conv_tol
     mc.max_cycle_macro = mc_max_macro
-    # 允许活性空间内部的轨道旋转；否则 ncas == norb 时旋转空间为空，
-    # 宏迭代会直接收敛（不做任何轨道优化）。
     mc.internal_rotation = internal_rotation
-    # 结束时不额外做酉旋转
     mc.canonicalization = False
 
-    # 记录每个宏观迭代的主要信息（PySCF 的 callback）
     macro_history = []
 
     def _record_macro(envs):
@@ -1192,7 +1284,6 @@ def kernel(
     else:
         mc.e_tot, mc.e_cas, mc.ci = mc.casci(mo_init)
 
-    # 每个宏观迭代只保留最后一条记录
     if macro_history:
         dedup = {}
         for h in macro_history:
@@ -1241,6 +1332,3 @@ if __name__ == "__main__":
 
     mc = kernel(fcidump, cmin=1e-1, etol=1e-4, mode=1, verbose=4, print_summary=True)
     print("E = ", mc.e_tot)
-
-    print(mc.mo_coeff)
-    print(numpy.diag(mc.mo_coeff))
