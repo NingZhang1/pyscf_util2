@@ -241,9 +241,7 @@ def _build_breit_outcore(mol, mo_L, mo_S, terms, prefix, verbose):
     for tag, intor, aosym in terms:
         path = "%s_breit_%s.h5" % (prefix, tag)
         t = time.time()
-        _transform_to_file(
-            mol, _BREIT_COEFF_SETS[tag](mo_L, mo_S), intor, aosym, path
-        )
+        _transform_to_file(mol, _BREIT_COEFF_SETS[tag](mo_L, mo_S), intor, aosym, path)
         paths[tag] = path
         _log(verbose, "    %-4s (%s) %6.2fs" % (tag, aosym, time.time() - t))
     return paths
@@ -624,9 +622,7 @@ def FCIDUMP_Rela4C_opt(
     try:
         if mode == "incore":
             _log(verbose, "  Coulomb transform ...")
-            int2e_coulomb = _build_coulomb_incore(
-                mol, mo_L, mo_S, c1, workdir, verbose
-            )
+            int2e_coulomb = _build_coulomb_incore(mol, mo_L, mo_S, c1, workdir, verbose)
             if with_breit or with_gaunt:
                 terms = _BREIT_TERMS if with_breit else _GAUNT_TERMS
                 _log(verbose, "  Breit/Gaunt transform ...")
@@ -735,7 +731,12 @@ if __name__ == "__main__":
 
     t = time.time()
     FCIDUMP_Rela4C_opt(
-        mol, mf, with_breit=True, npes=20,
-        filename="/tmp/FCIDUMP_4C_opt_demo", mode="incore", verbose=1,
+        mol,
+        mf,
+        with_breit=True,
+        npes=20,
+        filename="/tmp/FCIDUMP_4C_opt_demo",
+        mode="incore",
+        verbose=1,
     )
     print("incore demo %.2fs" % (time.time() - t))

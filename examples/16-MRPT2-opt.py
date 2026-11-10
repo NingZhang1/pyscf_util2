@@ -146,9 +146,7 @@ class Report(object):
         self.checks = []
 
     def add(self, task, t_old, t_new, size_old, size_new, note=""):
-        self.rows.append(
-            (task, t_old, t_new, size_old, size_new, note)
-        )
+        self.rows.append((task, t_old, t_new, size_old, size_new, note))
 
     def check(self, label, ok, detail=""):
         self.checks.append((label, bool(ok), detail))
@@ -157,7 +155,9 @@ class Report(object):
     def print_timings(self):
         print("")
         print("=" * 102)
-        print("%-36s %10s %10s %9s %16s" % ("任务", "旧版", "新版", "加速比", "文件体积"))
+        print(
+            "%-36s %10s %10s %9s %16s" % ("任务", "旧版", "新版", "加速比", "文件体积")
+        )
         print("-" * 102)
         for task, t_old, t_new, size_old, size_new, note in self.rows:
             speedup = t_old / t_new if t_new else float("inf")
@@ -166,8 +166,7 @@ class Report(object):
             else:
                 size = "%.1fMB" % (size_new / 2.0**20)
             print(
-                "%-36s %9.2fs %9.2fs %8.2fx %16s"
-                % (task, t_old, t_new, speedup, size)
+                "%-36s %9.2fs %9.2fs %8.2fx %16s" % (task, t_old, t_new, speedup, size)
             )
             if note:
                 print("        " + note)
@@ -217,8 +216,10 @@ def main(basis):
     print("=" * 102)
     print("MRPT2 积分导出：旧版 vs 优化版")
     print("  分子      : H2O / %s (C2v)" % basis)
-    print("  轨道      : nao = nmo = %d, nfzc = %d, nact = %d, nvir = %d"
-          % (nmo, nfzc, nact, nvir))
+    print(
+        "  轨道      : nao = nmo = %d, nfzc = %d, nact = %d, nvir = %d"
+        % (nmo, nfzc, nact, nvir)
+    )
     print("  阈值      : tol = %g" % tol)
     print("  计时说明  : 所有时间都包含 AO -> MO 积分变换（新旧实现共有）")
     print("=" * 102)
@@ -259,16 +260,32 @@ def main(basis):
         # 2. outcore: 逐字节相同 + h5 复用
         # ------------------------------------------------------------------
         print("")
-        print("[2/4] outcore 版本（fcidump_mrpt2_outcore -> fcidump_mrpt2_outcore_opt）")
+        print(
+            "[2/4] outcore 版本（fcidump_mrpt2_outcore -> fcidump_mrpt2_outcore_opt）"
+        )
         f_old_outcore = os.path.join(tmpdir, "outcore_old.txt")
         f_new_outcore = os.path.join(tmpdir, "outcore_new.txt")
         _, t_old_outcore = quiet(
             old_incore_mod.fcidump_mrpt2_outcore,
-            mol, mf, mo, nfzc, nact, nvir, f_old_outcore, tol,
+            mol,
+            mf,
+            mo,
+            nfzc,
+            nact,
+            nvir,
+            f_old_outcore,
+            tol,
         )
         stats_outcore, t_new_outcore = timed(
             opt_mod.fcidump_mrpt2_outcore_opt,
-            mol, mf, mo, nfzc, nact, nvir, f_new_outcore, tol,
+            mol,
+            mf,
+            mo,
+            nfzc,
+            nact,
+            nvir,
+            f_new_outcore,
+            tol,
         )
         outcore_same = md5_of(f_old_outcore) == md5_of(f_new_outcore)
         report.check(
@@ -293,7 +310,15 @@ def main(basis):
         )
         _, t_reuse = timed(
             opt_mod.fcidump_mrpt2_outcore_opt,
-            mol, mf, mo, nfzc, nact, nvir, f_reuse_b, tol, erifile=h5file,
+            mol,
+            mf,
+            mo,
+            nfzc,
+            nact,
+            nvir,
+            f_reuse_b,
+            tol,
+            erifile=h5file,
         )
         report.check(
             "outcore 复用已有 MO 积分文件（不重做 AO->MO）",
@@ -313,16 +338,32 @@ def main(basis):
         # 3. fast: 键集合相同、值一致、去重
         # ------------------------------------------------------------------
         print("")
-        print("[3/4] fast 版本（fcidump_mrpt2_incore_fast -> fcidump_mrpt2_incore_fast_opt）")
+        print(
+            "[3/4] fast 版本（fcidump_mrpt2_incore_fast -> fcidump_mrpt2_incore_fast_opt）"
+        )
         f_old_fast = os.path.join(tmpdir, "fast_old.txt")
         f_new_fast = os.path.join(tmpdir, "fast_new.txt")
         _, t_old_fast = quiet(
             old_fast_mod.fcidump_mrpt2_incore_fast,
-            mol, mf, mo, nfzc, nact, nvir, f_old_fast, tol,
+            mol,
+            mf,
+            mo,
+            nfzc,
+            nact,
+            nvir,
+            f_old_fast,
+            tol,
         )
         stats_fast, t_new_fast = timed(
             opt_mod.fcidump_mrpt2_incore_fast_opt,
-            mol, mf, mo, nfzc, nact, nvir, f_new_fast, tol,
+            mol,
+            mf,
+            mo,
+            nfzc,
+            nact,
+            nvir,
+            f_new_fast,
+            tol,
         )
         rec_fast_old, h1_fast_old, e_fast_old, sym_fast_old, _, _ = parse_fcidump(
             f_old_fast
@@ -333,8 +374,10 @@ def main(basis):
         n_lines_old = sum(len(v) for v in rec_fast_old.values())
         n_lines_new = sum(len(v) for v in rec_fast_new.values())
         max_delta = max(
-            (abs(rec_fast_old[k][0] - rec_fast_new[k][0])
-             for k in set(rec_fast_old) & set(rec_fast_new)),
+            (
+                abs(rec_fast_old[k][0] - rec_fast_new[k][0])
+                for k in set(rec_fast_old) & set(rec_fast_new)
+            ),
             default=0.0,
         )
         report.check(
@@ -359,7 +402,8 @@ def main(basis):
             h1_fast_old == h1_fast_new
             and abs(e_fast_old - e_fast_new) < 1e-12
             and sym_fast_old == sym_fast_new,
-            "h1e %d 项, ECORE 差 %.1e" % (len(h1_fast_new), abs(e_fast_old - e_fast_new)),
+            "h1e %d 项, ECORE 差 %.1e"
+            % (len(h1_fast_new), abs(e_fast_old - e_fast_new)),
         )
         report.add(
             "fast (ASCII)",
@@ -378,11 +422,27 @@ def main(basis):
         f_bin_outcore = os.path.join(tmpdir, "outcore.bin")
         stats_bin, t_bin_incore = timed(
             bin_mod.dump_mrpt2_binary,
-            mol, mf, mo, nfzc, nact, nvir, f_bin_incore, tol, "mrpt2",
+            mol,
+            mf,
+            mo,
+            nfzc,
+            nact,
+            nvir,
+            f_bin_incore,
+            tol,
+            "mrpt2",
         )
         _, t_bin_outcore = timed(
             bin_mod.dump_mrpt2_binary_outcore,
-            mol, mf, mo, nfzc, nact, nvir, f_bin_outcore, tol, "mrpt2",
+            mol,
+            mf,
+            mo,
+            nfzc,
+            nact,
+            nvir,
+            f_bin_outcore,
+            tol,
+            "mrpt2",
         )
         report.check(
             "binary outcore == incore（逐字节）",
@@ -433,7 +493,14 @@ def main(basis):
         f_bin_fast = os.path.join(tmpdir, "fast.bin")
         stats_bin_fast, t_bin_fast = timed(
             bin_mod.dump_mrpt2_binary_fast,
-            mol, mf, mo, nfzc, nact, nvir, f_bin_fast, tol,
+            mol,
+            mf,
+            mo,
+            nfzc,
+            nact,
+            nvir,
+            f_bin_fast,
+            tol,
         )
         fast_bin_keys, _, _ = _binary_records(f_bin_fast)
         report.check(
@@ -456,7 +523,15 @@ def main(basis):
             f_bin_full = os.path.join(tmpdir, "full.bin")
             stats_full, t_full = timed(
                 bin_mod.dump_mrpt2_binary,
-                mol, mf, mo, nfzc, nact, nvir, f_bin_full, tol, "full",
+                mol,
+                mf,
+                mo,
+                nfzc,
+                nact,
+                nvir,
+                f_bin_full,
+                tol,
+                "full",
             )
             f_ref = os.path.join(tmpdir, "pyscf_reference.txt")
             _, t_ref = timed(tools.fcidump.from_mo, mol, f_ref, mo, tol=tol)
@@ -520,7 +595,8 @@ def main(basis):
 
     report.print_timings()
     ascii_rows = [
-        row for row in report.rows
+        row
+        for row in report.rows
         if row[0] in ("incore (ASCII)", "outcore (ASCII)", "fast (ASCII)")
     ]
     if len(ascii_rows) == 3:

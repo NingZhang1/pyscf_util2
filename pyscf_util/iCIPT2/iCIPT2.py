@@ -94,9 +94,10 @@ class _iCIPT2_Driver:
         inp = inputfilename
         out = outputfilename
         err = errorfilename
-        
+
         import subprocess
-        with open(out, 'w') as out_f, open(err, 'w') as err_f:
+
+        with open(out, "w") as out_f, open(err, "w") as err_f:
             subprocess.run([exe, inp, fcidump], stdout=out_f, stderr=err_f)
 
         # (3) remove the input file #

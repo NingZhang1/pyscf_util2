@@ -15,12 +15,17 @@ F2M_iCIPT2_Fe4S4 是 F2M_iCIPT2_Fe2S2 的 [4Fe-4S] 版本，支持三种局域�
 注意: F2M_iCIPT2 是一个局域近似，能量高于 full CI 参考值；cmin 越小、
 模式越"大"，能量越低 (但代价越高)。
 
-本机测试结果 (mx_spintwo=20, cmin=1e-1, etol=1e-4; 只用于验证程序能跑通):
+本机测试结果 (mx_spintwo=20, cmin=1e-1, etol=1e-4, selection=1; 纯 CASCI):
 
-    mode 1 (spin only)   : -326.215820   (~2 min)
-    mode 2 (MMCT)        : -326.215820   (cmin=1e-1 时 MMCT 态未被选到)
-    mode 3 (LMCT)        : -326.414887
+    mode 1 (spin only)   : -326.225873   (ncsf = 750)
+    mode 2 (MMCT)        : -326.225873   (cmin=1e-1 时 MMCT 态未被选到)
+    mode 3 (LMCT, level 1): -326.441347  (ncsf = 768)
     full CI (DMRG d=4000): -327.2396369
+
+当前程序接口 (RDM 由输入文件 dumprdm 控制):
+    <input> <FCIDUMP> <mx_spintwo> <mode> <mx_ligand_ext_level>
+            <mx_ligand_spintwo> <calculate_dm> <only_ferro_antiferro>
+            <hmat_brute_force_threshold> <hmat_update> <prune_init_guess>
 
 运行前设置可执行文件路径:
     export F2M_ICIPT2_FE4S4=/path/to/iCIPT2_Loong/bin/F2M_iCIPT2_Fe4S4.exe
@@ -78,8 +83,17 @@ ETOL = 1e-4
 MX_SPINTWO = 20
 
 # mode 3 才用到的配体激发参数
+#   mx_ligand_ext_level: 0..6 (S3p 最多 6 个电子; 外围 S 为 0..2)
+#   mx_ligand_spintwo  : 配体局域态允许的最大 2S (3 = 不限制)
 MX_LIGAND_EXT_LEVEL = 1
-MX_LIGAND_SPINTWO = 1
+MX_LIGAND_SPINTWO = 3
+
+# 其他新选项 (与程序命令行一一对应)
+SELECTION = 1  # 1: 做 cmin selection; 0: 初猜即最终结果
+ONLY_FERRO_ANTIFERRO = False
+HMAT_BRUTE_FORCE_THRESHOLD = 0
+HMAT_UPDATE = True
+PRUNE_INIT_GUESS = True
 
 
 def main():
@@ -95,9 +109,15 @@ def main():
         mode=MODE,
         mx_ligand_ext_level=MX_LIGAND_EXT_LEVEL,
         mx_ligand_spintwo=MX_LIGAND_SPINTWO,
+        selection=SELECTION,
+        only_ferro_antiferro=ONLY_FERRO_ANTIFERRO,
+        hmat_brute_force_threshold=HMAT_BRUTE_FORCE_THRESHOLD,
+        hmat_update=HMAT_UPDATE,
+        prune_init_guess=PRUNE_INIT_GUESS,
         mc_conv_tol=1e-7,
-        mc_max_macro=32,
+        mc_max_macro=8,  # 示例只跑 8 个 macro；收敛通常需要更多
         run_mcscf=True,  # False: 只做一次 CASCI
+        print_summary=True,
         verbose=4,
     )
 

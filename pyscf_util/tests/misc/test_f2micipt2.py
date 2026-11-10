@@ -94,9 +94,7 @@ class TestRDMReaders(unittest.TestCase):
                 fname, self.norb, self.rdm1, self.rdm2, with_state=with_state
             )
             rdm1 = f2micipt2.read_rdm1_csv(fname, self.norb)
-            rdm2 = f2micipt2.read_rdm2_csv(
-                fname.replace("dm1", "dm2"), self.norb
-            )
+            rdm2 = f2micipt2.read_rdm2_csv(fname.replace("dm1", "dm2"), self.norb)
 
         self.assertTrue(np.allclose(rdm1, self.rdm1, atol=1e-12))
         self.assertTrue(np.allclose(rdm2, self.rdm2, atol=1e-12))
@@ -147,7 +145,7 @@ class TestFCIDUMP(unittest.TestCase):
 
 
 class TestParseEnergies(unittest.TestCase):
-    def test_parse(self):
+    def test_parse_eig(self):
         text = """
 *************** Begin MatrixDiag ***************
 Init[   0] :   -115.95372006
@@ -158,37 +156,198 @@ Eig[   0]  :   -116.38405772
 """
         self.assertEqual(f2micipt2.parse_ci_energies(text, 1), [-116.38405772])
 
+    def test_parse_task_final_energies(self):
+        text = """
+task 0 ene of sparse (init guess) : -115.953720058215
+task 0 final energies:
+  state  0 : -116.384057717351
+  state  1 : -116.200000000000
+task 1 final energies:
+  state  0 : -116.400000000000
+"""
+        self.assertEqual(
+            f2micipt2.parse_task_energies(text, 1), [-116.400000000000]
+        )
+        # 只取最后一个 task 的态
+        self.assertEqual(
+            f2micipt2.parse_task_energies(text, 2), [-116.400000000000]
+        )
+        self.assertIsNone(f2micipt2.parse_task_energies("no energies here"))
 
-if __name__ == "__main__":
-    unittest.main()
+
+class TestOutputParsers(unittest.TestCase):
+    LOG = """\
+-------------------------------------------
+PrimitiveLocalStateLoopUpTable
+block_id         : 0
+start_orb_indx   : 0
+norb             : 1
+mx_spintwo       : 20
+mx_nopen         : 5
+local state info : 
+    nelec : 2, spintwo : 0, nopen : 0
+        n_local_state                 : 1
+        primitive_local_states_offset : 0
+    nelec : 1, spintwo : 1, nopen : 1
+        n_local_state                 : 1
+        primitive_local_states_offset : 1
+
+-------------------------------------------
+PrimitiveLocalStateLoopUpTable
+block_id         : 1
+start_orb_indx   : 1
+norb             : 3
+local state info : 
+    nelec : 6, spintwo : 0, nopen : 0
+        n_local_state                 : 1
+    nelec : 5, spintwo : 1, nopen : 1
+        n_local_state                 : 3
+
+*************** Begin PRINT BLOCK CSF SPACE ***************
+
+spintwo    = 0
+nstates    = 1
+ncsf       = 10
+*********** state  0 ***********
+Important block csf:
+(   1,  0)(   1,  0)     -0.9 (  90.0%)
+
+*************** End PRINT BLOCK CSF SPACE ***************
+"""
+
+    def test_parse_local_states(self):
+        blocks = f2micipt2.parse_local_states(self.LOG)
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(blocks[0]["block"], 0)
+        self.assertEqual(blocks[0]["norb"], 1)
+        self.assertEqual(blocks[0]["states"], [(2, 0, 0, 1), (1, 1, 1, 1)])
+        self.assertEqual(blocks[1]["block"], 1)
+        self.assertEqual(blocks[1]["norb"], 3)
+        self.assertEqual(blocks[1]["states"], [(6, 0, 0, 1), (5, 1, 1, 3)])
+
+    def test_parse_important_csfs(self):
+        csfs = f2micipt2.parse_important_csfs(self.LOG)
+        self.assertEqual(len(csfs), 1)
+        self.assertAlmostEqual(csfs[0]["coef"], -0.9)
+        self.assertAlmostEqual(csfs[0]["weight"], 90.0)
+
+    def test_extract_important_csf(self):
+        text = f2micipt2.extract_important_csf(self.LOG)
+        self.assertIn("ncsf       = 10", text)
+        self.assertIn("Important block csf", text)
+        self.assertNotIn("End PRINT", text)
+
+
+class TestSolverCLI(unittest.TestCase):
+    def test_fe2s2_defaults(self):
+        solver = f2micipt2.F2MiCIPT2Solver(executable="/bin/true", workdir="/tmp/x")
+        self.assertEqual(solver.norb_model, 20)
+        self.assertEqual(solver.mx_spintwo, 10)
+        self.assertEqual(solver.mx_ligand_spintwo, 3)
+        self.assertEqual(solver.selection, 1)
+        self.assertEqual(solver.dumprdm, 2)
+        self.assertEqual(solver.dm1_name, "fe2s2_dm1.csv")
+        cmd = solver._build_cmd("inp", "FCIDUMP")
+        # <exe> <input> <FCIDUMP> <mx_spintwo> <mode> <lig_ext> <lig_s2>
+        # <calc_dm> <only_fa> <brute_thr> <hmat_update> <prune>
+        self.assertEqual(
+            cmd,
+            ["/bin/true", "inp", "FCIDUMP", "10", "1", "1", "3", "1", "0", "0", "1", "1"],
+        )
+
+    def test_new_options(self):
+        solver = f2micipt2.F2MiCIPT2Solver(
+            executable="/bin/true",
+            workdir="/tmp/x",
+            mx_spintwo=6,
+            mode=3,
+            mx_ligand_ext_level=6,
+            mx_ligand_spintwo=2,
+            only_ferro_antiferro=True,
+            hmat_brute_force_threshold=5000,
+            hmat_update=False,
+            prune_init_guess=False,
+        )
+        self.assertEqual(
+            solver._build_cmd("inp", "FCIDUMP"),
+            ["/bin/true", "inp", "FCIDUMP", "6", "3", "6", "2", "1", "1", "5000", "0", "0"],
+        )
+
+    def test_no_rdm(self):
+        solver = f2micipt2.F2MiCIPT2Solver(
+            executable="/bin/true", workdir="/tmp/x", calc_rdm=False
+        )
+        self.assertEqual(solver.dumprdm, 0)
+        self.assertEqual(solver._build_cmd("inp", "FCIDUMP")[7], "0")
+        with self.assertRaises(RuntimeError):
+            solver.make_rdm1()
+
+    def test_invalid_arguments(self):
+        with self.assertRaises(ValueError):
+            f2micipt2.F2MiCIPT2Solver(executable="/bin/true", mode=4)
+        with self.assertRaises(ValueError):
+            f2micipt2.F2MiCIPT2Solver(executable="/bin/true", selection=2)
+        with self.assertRaises(ValueError):
+            f2micipt2.F2MiCIPT2Solver(executable="/bin/true", dumprdm=3)
+        with self.assertRaises(ValueError):
+            # 请求 RDM 但 dumprdm = 0
+            f2micipt2.F2MiCIPT2Solver(
+                executable="/bin/true", calc_rdm=True, dumprdm=0
+            )
+
+    def test_input_file(self):
+        solver = f2micipt2.F2MiCIPT2Solver(
+            executable="/bin/true",
+            workdir="/tmp/x",
+            cmin="1e-3",
+            etol="1e-6",
+            mode=2,
+            selection=1,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "f2m.inp")
+            solver._write_input(path, 0)
+            with open(path) as f:
+                text = f.read()
+        self.assertIn("selection=1", text)
+        self.assertIn("dumprdm=2", text)
+        self.assertIn("task=0 0 1 1", text)
+        self.assertIn("cmin=1e-3", text)
 
 
 class TestFe4S4Solver(unittest.TestCase):
-    def test_cli_and_model(self):
+    def test_model_defaults(self):
+        from pyscf_util.MeanField import f2micipt2_fe4s4 as fe4s4
+
+        solver = fe4s4.F2MiCIPT2Fe4S4Solver(executable="/bin/true", workdir="/tmp/x")
+        self.assertEqual(solver.norb_model, 36)
+        self.assertEqual(solver.mx_spintwo, 20)
+        self.assertEqual(solver.nsegment, "0 0 18 18 0 0")
+        self.assertEqual(solver.dm1_name, fe4s4.F2M_DM1_NAME)
+        self.assertEqual(solver.dm2_name, fe4s4.F2M_DM2_NAME)
+
+    def test_cli(self):
         from pyscf_util.MeanField import f2micipt2_fe4s4 as fe4s4
 
         solver = fe4s4.F2MiCIPT2Fe4S4Solver(
             executable="/bin/true",
-            workdir="/tmp/fe4s4_test",
+            workdir="/tmp/x",
             mode=3,
-            mx_spintwo=20,
             mx_ligand_ext_level=2,
             mx_ligand_spintwo=1,
+            only_ferro_antiferro=True,
         )
-        self.assertEqual(solver.norb_model, 36)
-        self.assertEqual(solver.dm1_name, fe4s4.F2M_DM1_NAME)
-        self.assertEqual(solver.dm2_name, fe4s4.F2M_DM2_NAME)
-        cmd = solver._build_cmd("inp", "FCIDUMP")
         self.assertEqual(
-            cmd, ["/bin/true", "inp", "FCIDUMP", "20", "3", "2", "1", "1"]
+            solver._build_cmd("inp", "FCIDUMP"),
+            ["/bin/true", "inp", "FCIDUMP", "20", "3", "2", "1", "1", "1", "0", "1", "1"],
         )
-
-        # 不 dump RDM 时最后一个参数是 0
-        solver.calc_rdm = False
-        self.assertEqual(solver._build_cmd("inp", "FCIDUMP")[-1], "0")
 
     def test_invalid_mode(self):
         from pyscf_util.MeanField import f2micipt2_fe4s4 as fe4s4
 
         with self.assertRaises(ValueError):
             fe4s4.F2MiCIPT2Fe4S4Solver(executable="/bin/true", mode=4)
+
+
+if __name__ == "__main__":
+    unittest.main()

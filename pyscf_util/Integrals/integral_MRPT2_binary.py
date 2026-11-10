@@ -136,15 +136,12 @@ def _head_text(nmo, nelec, ms2, orbsym, nfzc, nact, nvir, tol, ecore, mode):
     if orbsym is None:
         orbsym = [1] * nmo
     if len(orbsym) != nmo:
-        raise ValueError(
-            "orbsym has %d entries, expected nmo=%d" % (len(orbsym), nmo)
-        )
+        raise ValueError("orbsym has %d entries, expected nmo=%d" % (len(orbsym), nmo))
     return (
         " &FCI NORB=%4d,NELEC=%2d,MS2=%d,\n" % (nmo, nelec, ms2)
         + "  ORBSYM=%s\n" % ",".join(str(int(x)) for x in orbsym)
         + "  ISYM=1,\n"
-        + "  NFZC=%4d,NACT=%4d,NVIR=%4d,TOL=%.17g,\n"
-        % (nfzc, nact, nvir, tol)
+        + "  NFZC=%4d,NACT=%4d,NVIR=%4d,TOL=%.17g,\n" % (nfzc, nact, nvir, tol)
         + "  ECORE=%.17g,FMT=%s,IDXBASE=0,MODE=%s,\n" % (ecore, MRPT2BIN_FMT, mode)
         + " &END\n"
     )
@@ -250,11 +247,7 @@ def write_mrpt2_binary(
     nint = 0
     with open(filename, "wb") as fout:
         fout.write(head_bytes)
-        fout.write(
-            _HEAD_PREAMBLE.pack(
-                MRPT2BIN_MAGIC, MRPT2BIN_VERSION, int(nmo), 0
-            )
-        )
+        fout.write(_HEAD_PREAMBLE.pack(MRPT2BIN_MAGIC, MRPT2BIN_VERSION, int(nmo), 0))
         fout.write(lower.tobytes())
         eri_offset = fout.tell()
 
@@ -278,13 +271,10 @@ def write_mrpt2_binary(
             for arr in indices:
                 arr = np.asarray(arr)
                 if arr.size != count:
-                    raise ValueError(
-                        "index and value arrays must have the same length"
-                    )
+                    raise ValueError("index and value arrays must have the same length")
                 if arr.size and (arr.min() < 0 or arr.max() >= nmo):
                     raise ValueError(
-                        "orbital index out of range [0, %d): %d"
-                        % (nmo, int(arr.max()))
+                        "orbital index out of range [0, %d): %d" % (nmo, int(arr.max()))
                     )
             record = np.empty(count, dtype=MRPT2_ERI_DTYPE)
             record["p"] = np.asarray(i, dtype=np.uint16)
@@ -459,9 +449,7 @@ def mrpt2_binary_to_fcidump(filename, outname):
     nmo = data["nmo"]
     records = data["eri"]
     with open(outname, "w") as fout:
-        tools.fcidump.write_head(
-            fout, nmo, data["nelec"], data["ms2"], data["orbsym"]
-        )
+        tools.fcidump.write_head(fout, nmo, data["nelec"], data["ms2"], data["orbsym"])
         fmt = _FLOAT_FORMAT + " %4d %4d %4d %4d\n"
         lines = []
         for start in range(0, len(records), 1 << 15):
@@ -615,9 +603,7 @@ def dump_mrpt2_binary_outcore(
                 chunks = full_chunks(nmo, tol, lookup)
             else:
                 chunks = mask_chunks(nmo, nfzc, nact, tol, lookup)
-            stats = write_mrpt2_binary(
-                filename, h1e, chunks, verbose=verbose, **kwargs
-            )
+            stats = write_mrpt2_binary(filename, h1e, chunks, verbose=verbose, **kwargs)
     finally:
         if created and not keep_erifile:
             try:
@@ -683,9 +669,7 @@ def _demo():
     nvir = mol.nao - nfzc - nact
     tmpdir = tempfile.mkdtemp(prefix="mrpt2_bin_demo_")
     binfile = os.path.join(tmpdir, "dump.bin")
-    stats = this.dump_mrpt2_binary(
-        mol, mf, mo, nfzc, nact, nvir, binfile, 1e-10
-    )
+    stats = this.dump_mrpt2_binary(mol, mf, mo, nfzc, nact, nvir, binfile, 1e-10)
     data = this.load_mrpt2_binary(binfile)
     print(
         "nint=%d size=%.2fMB nint(check)=%d nmo=%d"
