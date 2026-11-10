@@ -83,6 +83,25 @@ class F2MiCIPT2Fe4S4Solver(_fe2s2.F2MiCIPT2Solver):
     exe_env = "F2M_ICIPT2_FE4S4"
     exe_name = "F2M_iCIPT2_Fe4S4.exe"
 
+    #: 局域块 ``(name, orbital indices)``，顺序与 F2M_iCIPT2_Fe4S4 一致
+    model_blocks = (
+        ("S_peri_1", [0]),
+        ("S_peri_2", [1]),
+        ("Fe_1", [2, 3, 4, 5, 6]),
+        ("Fe_2", [7, 8, 9, 10, 11]),
+        ("S_3", [12, 13, 14]),
+        ("S_4", [15, 16, 17]),
+        ("S_5", [18, 19, 20]),
+        ("S_6", [21, 22, 23]),
+        ("Fe_3", [24, 25, 26, 27, 28]),
+        ("Fe_4", [29, 30, 31, 32, 33]),
+        ("S_peri_3", [34]),
+        ("S_peri_4", [35]),
+    )
+    #: 双占（占据）块与活性块在 ``model_blocks`` 中的编号
+    occupied_block_ids = (0, 1, 4, 5, 6, 7, 10, 11)
+    active_block_ids = (2, 3, 8, 9)
+
 
 def kernel(
     fcidump,
@@ -115,6 +134,8 @@ def kernel(
     mc_max_macro=32,
     run_mcscf=True,
     internal_rotation=True,
+    gauge_after_macro=True,
+    gauge_partition=None,
     print_summary=False,
     dump_mo=True,
     solver=None,
@@ -198,6 +219,8 @@ def kernel(
         mc_max_macro=mc_max_macro,
         run_mcscf=run_mcscf,
         internal_rotation=internal_rotation,
+        gauge_after_macro=gauge_after_macro,
+        gauge_partition=gauge_partition,
         print_summary=print_summary,
         dump_mo=dump_mo,
         solver=solver,

@@ -68,8 +68,7 @@ def _write_fake_csv(filename, norb, rdm1, rdm2, with_state=True):
                                 )
                             else:
                                 f.write(
-                                    "%d,%d,%d,%d,%#.15g\n"
-                                    % (p, q, r, s, V[p, q, r, s])
+                                    "%d,%d,%d,%d,%#.15g\n" % (p, q, r, s, V[p, q, r, s])
                                 )
 
 
@@ -165,13 +164,9 @@ task 0 final energies:
 task 1 final energies:
   state  0 : -116.400000000000
 """
-        self.assertEqual(
-            f2micipt2.parse_task_energies(text, 1), [-116.400000000000]
-        )
+        self.assertEqual(f2micipt2.parse_task_energies(text, 1), [-116.400000000000])
         # 只取最后一个 task 的态
-        self.assertEqual(
-            f2micipt2.parse_task_energies(text, 2), [-116.400000000000]
-        )
+        self.assertEqual(f2micipt2.parse_task_energies(text, 2), [-116.400000000000])
         self.assertIsNone(f2micipt2.parse_task_energies("no energies here"))
 
 
@@ -252,7 +247,20 @@ class TestSolverCLI(unittest.TestCase):
         # <calc_dm> <only_fa> <brute_thr> <hmat_update> <prune>
         self.assertEqual(
             cmd,
-            ["/bin/true", "inp", "FCIDUMP", "10", "1", "1", "3", "1", "0", "0", "1", "1"],
+            [
+                "/bin/true",
+                "inp",
+                "FCIDUMP",
+                "10",
+                "1",
+                "1",
+                "3",
+                "1",
+                "0",
+                "0",
+                "1",
+                "1",
+            ],
         )
 
     def test_new_options(self):
@@ -270,7 +278,20 @@ class TestSolverCLI(unittest.TestCase):
         )
         self.assertEqual(
             solver._build_cmd("inp", "FCIDUMP"),
-            ["/bin/true", "inp", "FCIDUMP", "6", "3", "6", "2", "1", "1", "5000", "0", "0"],
+            [
+                "/bin/true",
+                "inp",
+                "FCIDUMP",
+                "6",
+                "3",
+                "6",
+                "2",
+                "1",
+                "1",
+                "5000",
+                "0",
+                "0",
+            ],
         )
 
     def test_no_rdm(self):
@@ -291,9 +312,7 @@ class TestSolverCLI(unittest.TestCase):
             f2micipt2.F2MiCIPT2Solver(executable="/bin/true", dumprdm=3)
         with self.assertRaises(ValueError):
             # 请求 RDM 但 dumprdm = 0
-            f2micipt2.F2MiCIPT2Solver(
-                executable="/bin/true", calc_rdm=True, dumprdm=0
-            )
+            f2micipt2.F2MiCIPT2Solver(executable="/bin/true", calc_rdm=True, dumprdm=0)
 
     def test_input_file(self):
         solver = f2micipt2.F2MiCIPT2Solver(
@@ -339,7 +358,20 @@ class TestFe4S4Solver(unittest.TestCase):
         )
         self.assertEqual(
             solver._build_cmd("inp", "FCIDUMP"),
-            ["/bin/true", "inp", "FCIDUMP", "20", "3", "2", "1", "1", "1", "0", "1", "1"],
+            [
+                "/bin/true",
+                "inp",
+                "FCIDUMP",
+                "20",
+                "3",
+                "2",
+                "1",
+                "1",
+                "1",
+                "0",
+                "1",
+                "1",
+            ],
         )
 
     def test_invalid_mode(self):
@@ -347,6 +379,91 @@ class TestFe4S4Solver(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             fe4s4.F2MiCIPT2Fe4S4Solver(executable="/bin/true", mode=4)
+
+
+class TestMoGauge(unittest.TestCase):
+    @staticmethod
+    def _random_orthogonal(n, seed=0):
+        rng = np.random.default_rng(seed)
+        q, _ = np.linalg.qr(rng.normal(size=(n, n)))
+        return q
+
+    def test_max_diag_sq_unitary(self):
+        rng = np.random.default_rng(3)
+        M = rng.normal(size=(6, 6))
+        U = f2micipt2._max_diag_sq_unitary(M)
+        self.assertTrue(np.allclose(U.T @ U, np.eye(6), atol=1e-12))
+
+        def objective(x):
+            return float(np.sum(np.diag(x) ** 2))
+
+        self.assertGreaterEqual(objective(M @ U) + 1e-12, objective(M))
+
+    def test_gauge_rotate_mo(self):
+        n = 10
+        mo = self._random_orthogonal(n, seed=5)
+        groups = [list(range(5)), list(range(5, 10))]
+        mo2 = f2micipt2.gauge_rotate_mo(mo, groups)
+
+        # 仍然是正交矩阵
+        self.assertTrue(np.allclose(mo2.T @ mo2, np.eye(n), atol=1e-12))
+        # 每个 group 的列空间不变
+        for g in groups:
+            p1 = mo[:, g] @ mo[:, g].T
+            p2 = mo2[:, g] @ mo2[:, g].T
+            self.assertTrue(np.allclose(p1, p2, atol=1e-12))
+        # 对角权重不下降
+        w1, _ = f2micipt2.mo_diagonal_weight(mo)
+        w2, _ = f2micipt2.mo_diagonal_weight(mo2)
+        self.assertGreaterEqual(w2 + 1e-12, w1)
+
+    def test_gauge_groups(self):
+        solver = f2micipt2.F2MiCIPT2Solver(executable="/bin/true", mode=1)
+        occ = [i for b in solver.occupied_block_ids for i in solver.model_blocks[b][1]]
+
+        # 默认只旋转双占 (S-S) 组 (严格能量不变)
+        groups = solver.gauge_groups()
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(sorted(groups[0]), sorted(occ))
+
+        # occ_act 额外旋转活性 Fe 组
+        occ_act = solver.gauge_groups("occ_act")
+        self.assertEqual(len(occ_act), 2)
+        self.assertEqual(sorted(occ_act[0]), sorted(occ))
+        flat = sorted(i for g in occ_act for i in g)
+        self.assertEqual(flat, list(range(20)))
+        self.assertEqual(sorted(solver.gauge_groups("occ")[0]), sorted(occ))
+
+        # mode 3 (LMCT): 全部轨道都是活性轨道, 不做 occ/act gauge
+        solver.mode = 3
+        self.assertIsNone(solver.gauge_groups())
+
+        # 每个局域块一组总是存在
+        local = solver.gauge_groups("local")
+        self.assertEqual(len(local), len(solver.model_blocks))
+        self.assertEqual(sorted(i for g in local for i in g), list(range(20)))
+
+    def test_mode3_gauge_mo_unchanged(self):
+        solver = f2micipt2.F2MiCIPT2Solver(executable="/bin/true", mode=3)
+        mo = self._random_orthogonal(20, seed=7)
+        mo2 = solver.gauge_mo_coeff(mo)
+        self.assertTrue(np.allclose(mo, mo2))
+
+    def test_fe4s4_gauge_groups(self):
+        from pyscf_util.MeanField import f2micipt2_fe4s4 as fe4s4
+
+        solver = fe4s4.F2MiCIPT2Fe4S4Solver(executable="/bin/true", mode=1)
+        groups = solver.gauge_groups()
+        self.assertEqual(len(groups), 1)  # 默认只旋转双占 S 组
+        groups2 = solver.gauge_groups("occ_act")
+        self.assertEqual(len(groups2), 2)
+        flat = sorted(i for g in groups2 for i in g)
+        self.assertEqual(flat, list(range(36)))
+        self.assertEqual(len(set(flat)), 36)
+        self.assertEqual(
+            sorted(solver.occupied_block_ids + solver.active_block_ids),
+            list(range(len(solver.model_blocks))),
+        )
 
 
 if __name__ == "__main__":

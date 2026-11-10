@@ -100,6 +100,13 @@ HMAT_BRUTE_FORCE_THRESHOLD = 0
 HMAT_UPDATE = True
 PRUNE_INIT_GUESS = True
 
+# 每个 macro 之后对 mo_coeff 做块对角规范旋转, 使其尽量对角。
+# 默认 gauge_partition="occ": 只旋转双占的 S 轨道组 (严格能量不变);
+# 可选 "occ_act" 同时旋转活性 Fe 组 (只是近似不变)。
+# mode 3 (LMCT) 时全部轨道都是活性轨道, 自动关闭。
+GAUGE_AFTER_MACRO = True
+GAUGE_PARTITION = "occ"
+
 
 def main():
     t0 = time.time()
@@ -119,6 +126,8 @@ def main():
         hmat_brute_force_threshold=HMAT_BRUTE_FORCE_THRESHOLD,
         hmat_update=HMAT_UPDATE,
         prune_init_guess=PRUNE_INIT_GUESS,
+        gauge_after_macro=GAUGE_AFTER_MACRO,
+        gauge_partition=GAUGE_PARTITION,
         mc_conv_tol=1e-7,
         mc_max_macro=8,  # 示例只跑 8 个 macro；收敛通常需要更多
         run_mcscf=True,  # False: 只做一次 CASCI

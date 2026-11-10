@@ -55,6 +55,10 @@ Fe4S4: ``fe4s4_dm*.csv``）。
   这样宏迭代会真正进行。F2M_iCIPT2 的局域态模型是在给定轨道基下定义的，
   旋转后的能量会随基变化；若只想在原始基下做 CASCI，设
   ``run_mcscf=False`` 或 ``internal_rotation=False``。
+* 每个 MCSCF macro 之后可以做一次块对角规范旋转（``gauge_after_macro``）：
+  默认只旋转双占的 S 轨道组（对 F2M_iCIPT2 严格能量不变），目标是让
+  ``mo_coeff`` 尽量对角；可选 ``gauge_partition='occ_act'`` 同时旋转活性
+  Fe 组（只是近似不变）。mode 3 (LMCT) 时全部轨道都是活性轨道，不做。
 * 每次真正调用 F2M_iCIPT2 都会打印最重要的几个组态（``n_top_csf``），
   ``print_summary=True`` 时结束打印宏迭代历史、最后一次调用的局域态/
   重要组态、能量和 ``mo_coeff``；``dump_mo=True``（默认）把 ``mo_coeff``
@@ -405,6 +409,89 @@ def plot_matrix_heatmap(
 
 
 ###########################################################
+# mo_coeff 的规范 (gauge) 旋转
+###########################################################
+
+
+def _max_diag_sq_unitary(matrix, tol=1e-13, max_sweep=200):
+    """返回正交矩阵 U，使 ``sum_i (matrix @ U)[i, i]**2`` 最大。
+
+    采用 Jacobi 式逐对旋转：对每一对 (p, q)，使目标函数最大的旋转角有
+    解析解（把目标写成关于 (cos theta, sin theta) 的二次型，取最大特征
+    向量），并且每次更新都单调增加目标函数，所以几轮扫描即可收敛。
+    """
+    M = numpy.array(matrix, dtype=float, copy=True)
+    n = M.shape[0]
+    U = numpy.eye(n)
+    for _ in range(max_sweep):
+        largest = 0.0
+        for p in range(n):
+            for q in range(p + 1, n):
+                a, b = M[p, p], M[p, q]
+                c, d = M[q, p], M[q, q]
+                A = a * a + d * d
+                B = a * b - c * d
+                C = b * b + c * c
+                if A + C < 1e-300:
+                    continue
+                theta = 0.5 * numpy.arctan2(2.0 * B, A - C)
+                cs, sn = numpy.cos(theta), numpy.sin(theta)
+                if abs(sn) < tol:
+                    continue
+                largest = max(largest, abs(sn))
+                cp, cq = M[:, p].copy(), M[:, q].copy()
+                M[:, p] = cs * cp + sn * cq
+                M[:, q] = -sn * cp + cs * cq
+                up, uq = U[:, p].copy(), U[:, q].copy()
+                U[:, p] = cs * up + sn * uq
+                U[:, q] = -sn * up + cs * uq
+        if largest < tol:
+            break
+    return U
+
+
+def gauge_rotate_mo(mo_coeff, groups, tol=1e-13, max_sweep=200):
+    """用块对角正交变换让 ``mo_coeff`` 尽量对角。
+
+    ``groups`` 是若干互不相交的轨道下标列表。对每个 group ``g``，取方阵
+    块 ``mo[g, g]``，只混合同一 group 内的列（右乘正交矩阵 U），使
+    ``sum_i (block @ U)[i, i]**2`` 最大；由于各 group 不重叠，这等价于
+    在所有块对角正交变换中最大化整个 ``mo_coeff`` 的对角权重。
+
+    对于 F2M_iCIPT2 的局域态模型：
+
+    * 双占（S 闭壳层）轨道之间的旋转是**严格**不变的；
+    * 不同局域块（例如两个 Fe）之间的活性轨道旋转只是近似不变；
+    * 占据-活性之间的旋转会改变能量，因此不在规范变换中。
+    """
+    mo = numpy.array(mo_coeff, dtype=float, copy=True)
+    for rows in groups:
+        idx = numpy.asarray(rows, dtype=int)
+        if idx.size < 2:
+            continue
+        block = mo[numpy.ix_(idx, idx)]
+        U = _max_diag_sq_unitary(block, tol=tol, max_sweep=max_sweep)
+        mo[:, idx] = mo[:, idx] @ U
+    return mo
+
+
+def mo_diagonal_weight(mo_coeff):
+    """返回 ``(对角权重占比, 最大非对角元绝对值)``。
+
+    对角权重占比 = ``sum_i mo[i,i]**2 / sum_ij mo[i,j]**2``。
+    """
+    mo = numpy.asarray(mo_coeff, dtype=float)
+    diag = numpy.diag(mo)
+    total = numpy.einsum("ij,ij->", mo, mo)
+    if total <= 0:
+        return 0.0, 0.0
+    return (
+        float(numpy.einsum("i,i->", diag, diag) / total),
+        float(numpy.abs(mo - numpy.diag(diag)).max()),
+    )
+
+
+###########################################################
 # FCI-solver 风格的 wrapper
 ###########################################################
 
@@ -461,6 +548,21 @@ class F2MiCIPT2Solver(lib.StreamObject):
     default_mx_spintwo = 10
     exe_env = "F2M_ICIPT2_FE2S2"
     exe_name = "F2M_iCIPT2_Fe2S2.exe"
+
+    #: 局域块 ``(name, orbital indices)``，顺序与 F2M_iCIPT2 的 block 一致
+    model_blocks = (
+        ("S_peri_1", [0]),
+        ("S_peri_2", [1]),
+        ("Fe_1", [2, 3, 4, 5, 6]),
+        ("S_3", [7, 8, 9]),
+        ("S_4", [10, 11, 12]),
+        ("Fe_2", [13, 14, 15, 16, 17]),
+        ("S_peri_3", [18]),
+        ("S_peri_4", [19]),
+    )
+    #: 双占（占据）块与活性块在 ``model_blocks`` 中的编号
+    occupied_block_ids = (0, 1, 3, 4, 6, 7)
+    active_block_ids = (2, 5)
 
     def __init__(
         self,
@@ -546,6 +648,7 @@ class F2MiCIPT2Solver(lib.StreamObject):
         self.last_output = None  # 最后一次运行的 stdout
         self.mc = None  # 由 driver 设置，供 print_summary 使用
         self.mc_history = []  # 宏迭代历史
+        self.gauge_history = []  # mo_coeff 规范旋转记录
 
         self._rdm1 = None
         self._rdm2 = None
@@ -586,6 +689,73 @@ class F2MiCIPT2Solver(lib.StreamObject):
         )
         log.info("")
         return self
+
+    def gauge_groups(self, partition=None):
+        """规范旋转的轨道分组。
+
+        Parameters
+        ----------
+        partition : {'occ_act', 'local', None}
+            ``'occ'``: 只旋转双占（S 闭壳层）轨道组，**严格能量不变**
+            （mode 1/2 的默认值）；
+            ``'occ_act'``: ``[双占轨道组, 活性轨道组]``；双占块内部的旋转严格
+            不变，不同 Fe 块之间的活性轨道旋转只是近似不变；
+            ``'local'``: 每个局域块一组（任何模式都严格不变）；
+            ``None``: mode <= 2 用 ``'occ'``；mode 3 (LMCT) 时全部轨道都是
+            活性轨道，返回 ``None``（不做规范旋转）。
+        """
+        if partition is None:
+            # 默认只旋转双占（S 闭壳层）轨道组：对 F2M_iCIPT2 这是严格
+            # 能量不变的；mode 3 时全部轨道都是活性轨道，不做旋转。
+            partition = "occ" if self.mode in (1, 2) else None
+        if partition is None:
+            return None
+        if partition in ("occ_act", "occ"):
+            occ = [i for b in self.occupied_block_ids for i in self.model_blocks[b][1]]
+            if partition == "occ":
+                # 只有双占块内部的旋转是严格能量不变的
+                return [occ]
+            act = [i for b in self.active_block_ids for i in self.model_blocks[b][1]]
+            return [occ, act]
+        if partition == "local":
+            return [list(b[1]) for b in self.model_blocks]
+        raise ValueError("unknown gauge partition: %r" % (partition,))
+
+    def gauge_mo_coeff(self, mo_coeff, partition=None, verbose=None):
+        """对 ``mo_coeff`` 做块对角规范旋转，返回新的 ``mo_coeff``。
+
+        这是 MCSCF 宏迭代之间的后处理：不改变占据/活性子空间，只重新选择
+        它们的内部基，使 ``mo_coeff`` 的对角权重尽量大。
+        """
+        groups = self.gauge_groups(partition)
+        if not groups:
+            return numpy.array(mo_coeff, dtype=float, copy=True)
+        if partition is None:
+            partition = "occ" if self.mode in (1, 2) else None
+        label = "occ/act" if partition == "occ_act" else str(partition)
+        before_w, before_off = mo_diagonal_weight(mo_coeff)
+        mo = gauge_rotate_mo(mo_coeff, groups)
+        after_w, after_off = mo_diagonal_weight(mo)
+        logger.info(
+            self,
+            "mo gauge (%s): diagonal weight %.6f -> %.6f, max|offdiag| %.3e -> %.3e",
+            label,
+            before_w,
+            after_w,
+            before_off,
+            after_off,
+        )
+        self.gauge_history.append(
+            dict(
+                call=len(self.gauge_history) + 1,
+                partition=label,
+                weight_before=before_w,
+                weight_after=after_w,
+                max_offdiag_before=before_off,
+                max_offdiag_after=after_off,
+            )
+        )
+        return mo
 
     def _task_line(self, spintwo):
         return "%d %d %d %s" % (
@@ -964,6 +1134,12 @@ class F2MiCIPT2Solver(lib.StreamObject):
         )
         w(" energy source   : %s" % self.energy_source)
         w(" binary calls    : %d" % len(self.history))
+        if self.gauge_history:
+            last = self.gauge_history[-1]
+            w(
+                " mo gauge        : %d calls (%s), last diagonal weight %.6f"
+                % (len(self.gauge_history), last["partition"], last["weight_after"])
+            )
         if mc is not None:
             nvirt = mc.mo_coeff.shape[1] - mc.ncore - mc.ncas
             w(" MCSCF converged : %s" % mc.converged)
@@ -1107,6 +1283,8 @@ def kernel(
     mc_max_macro=32,
     run_mcscf=True,
     internal_rotation=True,
+    gauge_after_macro=True,
+    gauge_partition=None,
     print_summary=False,
     dump_mo=True,
     solver=None,
@@ -1149,6 +1327,15 @@ def kernel(
         False : 只做一次 CASCI（一次 F2M_iCIPT2 调用）。
     internal_rotation : bool
         是否允许活性空间内部的轨道旋转。
+    gauge_after_macro : bool
+        是否在每个 macro 迭代之后对 ``mo_coeff`` 做块对角规范旋转，
+        使其尽量对角（默认 True）。默认只旋转双占的 S 轨道组（严格能量
+        不变）；mode 3 因为全部轨道都是活性轨道，不做（见
+        ``gauge_partition``）。
+    gauge_partition : {'occ_act', 'occ', 'local', None}
+        规范旋转的分组方式（见 :meth:`F2MiCIPT2Solver.gauge_groups`）：
+        ``'occ'`` 是默认（只旋转双占 S 组，严格能量不变），``'occ_act'``
+        还旋转活性 Fe 组（近似不变），``'local'`` 每个局域块一组。
     print_summary : bool
         结束时打印宏迭代历史、最后一次 F2M_iCIPT2 调用的局域态和重要组态、
         能量以及 mo_coeff。
@@ -1267,7 +1454,93 @@ def kernel(
         except Exception:
             pass
 
-    if run_mcscf:
+    gauge_groups = solver.gauge_groups(gauge_partition) if gauge_after_macro else None
+    if run_mcscf and gauge_groups is not None:
+        # 逐 macro 执行：每个 mc.kernel 只做一个 macro，然后在该 macro 之后
+        # 用块对角正交变换重新选择占据/活性子空间的内部基。占据-活性之间
+        # 的旋转会改变能量，因此不在此变换之内；F2M_iCIPT2 的局域态模型
+        # 只对双占块内部的旋转严格不变。
+        mc.max_cycle_macro = 1
+        mo = numpy.array(mo_init, dtype=float, copy=True)
+        ci0 = None
+        prev_e = None
+        converged = False
+        grad_tol = numpy.sqrt(float(mc_conv_tol))
+
+        for imacro in range(max(1, int(mc_max_macro))):
+            envs = {}
+
+            def _capture(envs_dict, _store=envs):
+                _store.clear()
+                _store.update(envs_dict)
+
+            mc.callback = _capture
+            mc.kernel(mo, ci0=ci0)
+            mo = mc.mo_coeff
+            ci0 = mc.ci
+            e_tot = mc.e_tot
+            de = None if prev_e is None else e_tot - prev_e
+            norm_gorb0 = envs.get("norm_gorb0")
+            macro_history.append(
+                dict(
+                    imacro=imacro,
+                    e_tot=e_tot,
+                    e_cas=mc.e_cas,
+                    de=de,
+                    norm_gorb0=norm_gorb0,
+                    norm_ddm=envs.get("norm_ddm"),
+                )
+            )
+
+            if (
+                prev_e is not None
+                and abs(de) < mc_conv_tol
+                and (norm_gorb0 is None or norm_gorb0 < grad_tol)
+            ):
+                converged = True
+                prev_e = e_tot
+                break
+            prev_e = e_tot
+
+            mo = solver.gauge_mo_coeff(mo, partition=gauge_partition)
+            mc.mo_coeff = mo
+
+        # 最后再做一次规范旋转，并让能量/CI 与最终的 mo_coeff 对应
+        e_last = mc.e_tot
+        mo = solver.gauge_mo_coeff(mo, partition=gauge_partition)
+        mc.mo_coeff = mo
+        mc.e_tot, mc.e_cas, mc.ci = mc.casci(mo)
+        gauge_label = (
+            "occ" if gauge_partition in (None, "occ") else str(gauge_partition)
+        )
+        logger.info(
+            mc,
+            "final gauge (%s) changed E by %.3e%s",
+            gauge_label,
+            mc.e_tot - e_last,
+            (
+                ""
+                if gauge_label == "occ"
+                else " (the active-block rotation is only approximately invariant "
+                "for the F2M local-state model)"
+            ),
+        )
+        mc.converged = converged
+        logger.note(
+            mc,
+            "MCSCF with occ/act gauge: %s after %d macros, E = %.12f",
+            "converged" if converged else "stopped",
+            len(macro_history),
+            mc.e_tot,
+        )
+    elif run_mcscf:
+        if gauge_after_macro:
+            logger.info(
+                mc,
+                "mode %d (LMCT): all orbitals are active, the occ/act gauge "
+                "rotation is disabled.",
+                solver.mode,
+            )
         mc.callback = _record_macro
         mc.kernel(mo_init)
 
